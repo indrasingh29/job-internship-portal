@@ -361,7 +361,7 @@ const RecruiterDashboard = () => {
 
       {/* Modal: Post New Job */}
       {isPostModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto relative animate-in fade-in zoom-in-95">
             <button
               onClick={() => setIsPostModalOpen(false)}
@@ -506,7 +506,7 @@ const RecruiterDashboard = () => {
 
       {/* Modal: View Applicants for a Job */}
       {selectedJobForApplicants && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 max-h-[85vh] overflow-y-auto relative animate-in fade-in zoom-in-95">
             <button
               onClick={() => setSelectedJobForApplicants(null)}

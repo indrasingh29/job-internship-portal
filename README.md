@@ -7,9 +7,18 @@
 
 ---
 
-## 1. Executive Summary & Project Mission
+## 1. Executive Summary & Live Deployments
 
-The **Job & Internship Portal** is a production-minded, full-featured web application architected using the **MERN Stack** (MongoDB, Express.js, React.js with Vite, Node.js). Designed to fulfill the official B.Tech CSE Minor Project synopsis, the platform provides a complete ecosystem for:
+The **Job & Internship Portal** is a production-minded, full-featured web application architected using the **MERN Stack** (MongoDB, Express.js, React.js with Vite, Node.js). Designed to fulfill the official B.Tech CSE Minor Project synopsis, the platform provides a complete ecosystem for Students, Recruiters, and System Administrators.
+
+### Live Production Links & Repository
+
+| Component | Platform | Live URL / Access Link | Status |
+| :--- | :--- | :--- | :--- |
+| **GitHub Repository** | GitHub (`main` branch) | [https://github.com/indrasingh29/job-internship-portal](https://github.com/indrasingh29/job-internship-portal) | **Live & Synced** |
+| **Frontend Web App** | Render Static Site | [https://job-portal-web-8a3p.onrender.com](https://job-portal-web-8a3p.onrender.com) | **Live (HTTP 200)** |
+| **Backend REST API** | Render Web Service | [https://job-portal-api-halo.onrender.com](https://job-portal-api-halo.onrender.com) | **Live (HTTP 200)** |
+| **Telemetry Health Check**| Production Endpoint | [https://job-portal-api-halo.onrender.com/api/health](https://job-portal-api-halo.onrender.com/api/health) | **Online (`connected`)** |
 
 - **Students / Job Seekers:** Discover tech openings, filter by fresher eligibility and remote workplace modes, bookmark opportunities, and submit tracked applications with resume links and customized cover letters.
 - **Recruiters / Employers:** Manage company profiles, create and publish job/internship vacancies, review candidate profiles and resume links, and update hiring statuses.
@@ -298,7 +307,18 @@ The backend includes an end-to-end automated API verification test suite (`npm t
 
 ---
 
-## 11. Copyright & Academic Attribution
+## 11. Known Limitations & Future Roadmap
+
+As an academic B.Tech Minor Project focusing on core full-stack engineering, certain production extensions are identified for future development:
+
+1. **Resume File Upload Storage:** Currently accepts public file links (Google Drive, GitHub, Cloud storage URLs). Future scope includes direct S3/Cloudinary bucket upload with PDF parser and MIME type verification.
+2. **Real-Time WebSockets:** Real-time push notifications for application status updates using Socket.io or WebSockets.
+3. **Email Notifications:** Automated transactional emails on application submission, status change, and password reset using Nodemailer or SendGrid.
+4. **AI Resume Matching:** Keyword extraction comparing applicant resume skills against required job skills for automated recruiter suitability scoring.
+
+---
+
+## 12. Copyright & Academic Attribution
 
 **© 2026 Indra Singh Jeena. All Rights Reserved.**
 

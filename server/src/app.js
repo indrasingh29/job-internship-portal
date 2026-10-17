@@ -75,13 +75,18 @@ app.get('/api/health', (req, res) => {
     3: 'disconnecting'
   };
   const dbStateCode = mongoose.connection.readyState;
+  const host = mongoose.connection.host;
+  const isInMemory = host === '127.0.0.1' || !host;
   res.json({
     status: 'online',
     database: {
       status: dbStates[dbStateCode] || 'unknown',
       connected: dbStateCode === 1,
-      host: mongoose.connection.host || null
+      host: host || null,
+      provider: isInMemory ? 'In-Memory Instance (Testing/Fallback)' : 'MongoDB Atlas (Persistent Cloud)',
+      storage: isInMemory ? 'ephemeral' : 'persistent'
     },
+    environment: process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString(),
     project: 'Job & Internship Portal - B.Tech CSE Minor Project',
     author: 'Indra Singh Jeena',

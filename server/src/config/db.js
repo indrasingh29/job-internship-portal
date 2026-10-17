@@ -47,22 +47,22 @@ const connectDB = async () => {
   }
 
   // 3. Keep server alive and schedule background reconnection attempts
-  console.warn('[MongoDB] Database is not connected yet. Waiting for valid MONGODB_URI configuration.');
+  console.warn('[MongoDB] Database waiting for connection. Scheduled background reconnection...');
   if (!retryTimer && uri && !uri.includes('<username>')) {
     retryTimer = setInterval(async () => {
-      console.log('[MongoDB] Retrying database connection...');
+      console.log('[MongoDB] Retrying connection to Atlas cluster...');
       try {
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
-          serverSelectionTimeoutMS: 5000,
+          serverSelectionTimeoutMS: 6000,
         });
-        console.log(`[MongoDB] Connected successfully to: ${conn.connection.host}`);
+        console.log(`[MongoDB] Successfully reconnected to Atlas host: ${conn.connection.host}`);
         clearInterval(retryTimer);
         retryTimer = null;
         await autoSeedIfEmpty();
       } catch (e) {
-        console.warn(`[MongoDB] Reconnection attempt failed: ${e.message}`);
+        console.warn(`[MongoDB] Atlas reconnection attempt failed: ${e.message}`);
       }
-    }, 15000);
+    }, 12000);
   }
 };
 

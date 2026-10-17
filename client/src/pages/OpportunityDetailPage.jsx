@@ -422,7 +422,7 @@ const OpportunityDetailPage = () => {
 
       {/* Application Modal */}
       {isApplyModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 relative animate-in fade-in zoom-in-95">
             <button
               onClick={() => setIsApplyModalOpen(false)}

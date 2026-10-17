@@ -53,10 +53,16 @@ const getJobs = async (req, res, next) => {
 
     if (search && search.trim() !== '') {
       const term = search.trim();
+      const matchingCompanies = await Company.find({
+        name: { $regex: term, $options: 'i' }
+      }).select('_id');
+      const companyIds = matchingCompanies.map(c => c._id);
+
       query.$or = [
         { title: { $regex: term, $options: 'i' } },
         { requiredSkills: { $regex: term, $options: 'i' } },
-        { description: { $regex: term, $options: 'i' } }
+        { description: { $regex: term, $options: 'i' } },
+        ...(companyIds.length > 0 ? [{ company: { $in: companyIds } }] : [])
       ];
     }
 
