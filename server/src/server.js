@@ -5,9 +5,6 @@ const { connectDB, disconnectDB } = require('./config/db');
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
-  // Connect to Database (Atlas or local development in-memory)
-  await connectDB();
-
   const server = app.listen(PORT, () => {
     console.log(`====================================================`);
     console.log(`  Job & Internship Portal API Server Running`);
@@ -17,6 +14,13 @@ const startServer = async () => {
     console.log(`  Env:     ${process.env.NODE_ENV || 'development'}`);
     console.log(`====================================================`);
   });
+
+  // Connect to Database (Atlas or local development in-memory)
+  try {
+    await connectDB();
+  } catch (err) {
+    console.warn(`[Server] Initial DB connection deferred: ${err.message}`);
+  }
 
   // Graceful shutdown handling
   const shutdown = async () => {

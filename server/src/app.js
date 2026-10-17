@@ -24,6 +24,8 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
 
+const mongoose = require('mongoose');
+
 // CORS setup: Supports local Vite dev server and deployed frontend origin
 const allowedOrigins = [
   'http://localhost:5173',
@@ -34,8 +36,20 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, Postman)
     if (!origin) return callback(null, true);
+    try {
+      const parsed = new URL(origin);
+      if (
+        allowedOrigins.includes(origin) ||
+        allowedOrigins.includes(origin.replace(/\/$/, '')) ||
+        parsed.hostname.endsWith('.onrender.com') ||
+        process.env.NODE_ENV !== 'production'
+      ) {
+        return callback(null, true);
+      }
+    } catch {
+      // If URL parsing fails, continue to check raw origin
+    }
     if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
       callback(null, true);
     } else {
@@ -54,8 +68,20 @@ app.use('/api', apiLimiter);
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {
+  const dbStates = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting'
+  };
+  const dbStateCode = mongoose.connection.readyState;
   res.json({
     status: 'online',
+    database: {
+      status: dbStates[dbStateCode] || 'unknown',
+      connected: dbStateCode === 1,
+      host: mongoose.connection.host || null
+    },
     timestamp: new Date().toISOString(),
     project: 'Job & Internship Portal - B.Tech CSE Minor Project',
     author: 'Indra Singh Jeena',
