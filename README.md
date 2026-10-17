@@ -158,7 +158,7 @@ job-internship-portal/
 
 ### Step 1: Clone or Navigate to Project
 ```powershell
-cd C:\Users\indra\.gemini\antigravity\scratch\job-internship-portal
+cd C:\Users\indra\scratch\job-internship-portal
 ```
 
 ### Step 2: Configure & Run Backend Server
