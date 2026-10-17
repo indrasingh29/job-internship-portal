@@ -2,9 +2,11 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Company = require('../models/Company');
 
+const JWT_SECRET = process.env.JWT_SECRET || 'btech_cse_minor_project_secret_key_2026_indra_singh_jeena';
+
 // Helper to generate JWT token
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+  return jwt.sign({ id }, JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d'
   });
 };

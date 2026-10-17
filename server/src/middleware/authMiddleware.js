@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+const JWT_SECRET = process.env.JWT_SECRET || 'btech_cse_minor_project_secret_key_2026_indra_singh_jeena';
+
 const protect = async (req, res, next) => {
   let token;
 
@@ -16,7 +18,7 @@ const protect = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.id).select('-password');
 
     if (!user) {
