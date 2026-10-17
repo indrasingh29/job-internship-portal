@@ -7,7 +7,8 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node src/seed/seeder.js",
-    "test": "node src/utils/runTests.js"
+    "test": "node src/utils/runTests.js",
+    "test:atlas": "node src/utils/testAtlasConnection.js"
   },
   "keywords": [
     "mern",
