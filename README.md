@@ -182,7 +182,7 @@ npm run dev
 ### Step 3: Configure & Run Frontend Client
 Open a second terminal window:
 ```powershell
-cd C:\Users\indra\.gemini\antigravity\scratch\job-internship-portal\client
+cd C:\Users\indra\scratch\job-internship-portal\client
 npm install
 
 # Setup environment file
