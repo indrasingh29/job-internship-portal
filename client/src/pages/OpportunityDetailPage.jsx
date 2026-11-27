@@ -116,10 +116,6 @@ const OpportunityDetailPage = () => {
           type: 'success',
           text: 'Application submitted successfully! You can track its status in your Student Dashboard.'
         });
-        setTimeout(() => {
-          setIsApplyModalOpen(false);
-          setAppStatusMessage(null);
-        }, 1800);
       }
     } catch (err) {
       const errorMsg = err.response?.data?.message || 'Failed to submit application. Please try again.';
@@ -433,70 +429,89 @@ const OpportunityDetailPage = () => {
             <h3 className="text-xl font-bold text-slate-900 mb-1">Apply for {title}</h3>
             <p className="text-xs text-slate-500 mb-5">{company?.name} &bull; {location}</p>
 
-            {appStatusMessage && (
-              <div className={`p-3.5 rounded-xl mb-4 text-xs font-semibold flex items-center gap-2 ${
-                appStatusMessage.type === 'success'
-                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                  : 'bg-red-50 text-red-800 border border-red-200'
-              }`}>
-                {appStatusMessage.type === 'success' ? (
+            {appStatusMessage?.type === 'success' ? (
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl text-xs font-semibold flex items-center gap-2 bg-emerald-50 text-emerald-800 border border-emerald-200">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                ) : (
-                  <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                  <span>{appStatusMessage.text}</span>
+                </div>
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => { setIsApplyModalOpen(false); setAppStatusMessage(null); }}
+                    className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                  >
+                    Close
+                  </button>
+                  <Link
+                    to="/student/dashboard?tab=applications"
+                    onClick={() => setIsApplyModalOpen(false)}
+                    className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
+                  >
+                    View My Applications
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <>
+                {appStatusMessage && (
+                  <div className="p-3.5 rounded-xl mb-4 text-xs font-semibold flex items-center gap-2 bg-red-50 text-red-800 border border-red-200">
+                    <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                    <span>{appStatusMessage.text}</span>
+                  </div>
                 )}
-                <span>{appStatusMessage.text}</span>
-              </div>
+
+                <form onSubmit={handleApplySubmit} className="space-y-4">
+                  <div>
+                    <label htmlFor="apply-resume-url" className="block text-xs font-bold text-slate-700 mb-1">
+                      Resume Link / URL <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="apply-resume-url"
+                      type="url"
+                      required
+                      placeholder="https://drive.google.com/... or portfolio resume link"
+                      value={resumeUrl}
+                      onChange={(e) => setResumeUrl(e.target.value)}
+                      className="w-full text-xs text-slate-800 px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-500"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">Ensure viewing permissions are enabled for recruiters.</p>
+                  </div>
+
+                  <div>
+                    <label htmlFor="apply-cover-letter" className="block text-xs font-bold text-slate-700 mb-1">
+                      Cover Note
+                    </label>
+                    <textarea
+                      id="apply-cover-letter"
+                      rows={4}
+                      placeholder="Share why you are a strong fit for this role and highlight relevant projects or experience..."
+                      value={coverLetter}
+                      onChange={(e) => setCoverLetter(e.target.value)}
+                      className="w-full text-xs text-slate-800 p-3.5 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsApplyModalOpen(false)}
+                      className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submittingApp}
+                      className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      {submittingApp ? 'Submitting...' : 'Submit Application'}
+                    </button>
+                  </div>
+                </form>
+              </>
             )}
-
-            <form onSubmit={handleApplySubmit} className="space-y-4">
-              <div>
-                <label htmlFor="apply-resume-url" className="block text-xs font-bold text-slate-700 mb-1">
-                  Resume Link / URL <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="apply-resume-url"
-                  type="url"
-                  required
-                  placeholder="https://drive.google.com/... or portfolio resume link"
-                  value={resumeUrl}
-                  onChange={(e) => setResumeUrl(e.target.value)}
-                  className="w-full text-xs text-slate-800 px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-500"
-                />
-                <p className="text-[11px] text-slate-400 mt-1">Ensure viewing permissions are enabled for recruiters.</p>
-              </div>
-
-              <div>
-                <label htmlFor="apply-cover-letter" className="block text-xs font-bold text-slate-700 mb-1">
-                  Cover Note
-                </label>
-                <textarea
-                  id="apply-cover-letter"
-                  rows={4}
-                  placeholder="Share why you are a strong fit for this role and highlight relevant projects or experience..."
-                  value={coverLetter}
-                  onChange={(e) => setCoverLetter(e.target.value)}
-                  className="w-full text-xs text-slate-800 p-3.5 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-500"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsApplyModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingApp}
-                  className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  {submittingApp ? 'Submitting...' : 'Submit Application'}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

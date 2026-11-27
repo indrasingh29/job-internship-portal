@@ -16,6 +16,9 @@ const { apiLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
 
+// Trust Render / reverse proxy headers (X-Forwarded-For) for accurate rate limiting
+app.set('trust proxy', 1);
+
 // Security HTTP headers
 app.use(helmet());
 
@@ -75,16 +78,25 @@ app.get('/api/health', (req, res) => {
     3: 'disconnecting'
   };
   const dbStateCode = mongoose.connection.readyState;
-  const host = mongoose.connection.host;
-  const isInMemory = host === '127.0.0.1' || !host;
+  const isConnected = dbStateCode === 1;
+  const host = isConnected ? mongoose.connection.host : null;
+  const isInMemory = isConnected && (host === '127.0.0.1' || host === 'localhost');
+
+  let provider = 'Not Connected (Awaiting MongoDB)';
+  let storage = 'none';
+  if (isConnected) {
+    provider = isInMemory ? 'In-Memory Instance (Testing/Fallback)' : 'MongoDB Atlas (Persistent Cloud)';
+    storage = isInMemory ? 'ephemeral' : 'persistent';
+  }
+
   res.json({
     status: 'online',
     database: {
       status: dbStates[dbStateCode] || 'unknown',
-      connected: dbStateCode === 1,
-      host: host || null,
-      provider: isInMemory ? 'In-Memory Instance (Testing/Fallback)' : 'MongoDB Atlas (Persistent Cloud)',
-      storage: isInMemory ? 'ephemeral' : 'persistent'
+      connected: isConnected,
+      host,
+      provider,
+      storage
     },
     environment: process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString(),

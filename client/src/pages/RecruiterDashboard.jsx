@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import AccountSettingsPanel from '../components/AccountSettingsPanel';
+import { OPPORTUNITY_CATEGORIES } from '../constants/categories';
 import { TableSkeleton } from '../components/SkeletonLoader';
 import {
   BarChart,
@@ -53,20 +54,6 @@ const EMPTY_JOB_FORM = {
   deadline: ''
 };
 
-const CATEGORIES = [
-  'Software Engineering',
-  'Full-Stack Development',
-  'Frontend Development',
-  'Backend Development',
-  'Cloud & DevOps',
-  'Data & AI',
-  'QA & Testing',
-  'UI/UX Design',
-  'Cybersecurity',
-  'Technical Support',
-  'Business Analysis'
-];
-
 const RecruiterDashboard = () => {
   const { user, setUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -96,6 +83,7 @@ const RecruiterDashboard = () => {
   const [selectedJobForApplicants, setSelectedJobForApplicants] = useState(null);
   const [applicantsList, setApplicantsList] = useState([]);
   const [loadingApplicants, setLoadingApplicants] = useState(false);
+  const [applicantsError, setApplicantsError] = useState(null);
 
   // Company Profile Form
   const [companyForm, setCompanyForm] = useState({
@@ -270,13 +258,14 @@ const RecruiterDashboard = () => {
   const handleViewApplicants = async (job) => {
     setSelectedJobForApplicants(job);
     setLoadingApplicants(true);
+    setApplicantsError(null);
     try {
       const res = await api.get(`/applications/job/${job._id}`);
       if (res.data.success) {
         setApplicantsList(res.data.applicants || []);
       }
     } catch (err) {
-      console.error('Failed to load applicants:', err.message);
+      setApplicantsError(err.response?.data?.message || 'Failed to load applicants.');
     } finally {
       setLoadingApplicants(false);
     }
@@ -290,7 +279,7 @@ const RecruiterDashboard = () => {
       );
       loadRecruiterData(false);
     } catch (err) {
-      console.error('Failed to update applicant status:', err.message);
+      setApplicantsError(err.response?.data?.message || 'Failed to update applicant status.');
     }
   };
 
@@ -812,7 +801,7 @@ const RecruiterDashboard = () => {
                     onChange={(e) => setJobForm({ ...jobForm, category: e.target.value })}
                     className="w-full text-xs text-slate-800 px-3 py-2.5 rounded-xl border border-slate-300 bg-white"
                   >
-                    {CATEGORIES.map((cat) => (
+                    {OPPORTUNITY_CATEGORIES.map((cat) => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
@@ -1032,6 +1021,12 @@ const RecruiterDashboard = () => {
             <p className="text-xs text-slate-500 mb-6">
               Review candidate profiles, resumes, and update application statuses.
             </p>
+
+            {applicantsError && (
+              <div className="p-3.5 rounded-xl mb-4 text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+                {applicantsError}
+              </div>
+            )}
 
             {loadingApplicants ? (
               <TableSkeleton rows={3} />

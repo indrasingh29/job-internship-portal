@@ -167,6 +167,13 @@ const createJob = async (req, res, next) => {
   try {
     let companyId = req.user.company;
 
+    if (companyId) {
+      const companyExists = await Company.exists({ _id: companyId });
+      if (!companyExists) {
+        companyId = null;
+      }
+    }
+
     if (!companyId) {
       const defaultCompany = await Company.create({
         name: `${req.user.name}'s Organization`,
@@ -204,6 +211,15 @@ const createJob = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         message: 'Please provide both a title and description for the opportunity.'
+      });
+    }
+
+    const parsedSalaryMin = Math.max(0, Number(salaryMin) || 0);
+    const parsedSalaryMax = Math.max(0, Number(salaryMax) || 0);
+    if (parsedSalaryMin > 0 && parsedSalaryMax > 0 && parsedSalaryMin > parsedSalaryMax) {
+      return res.status(400).json({
+        success: false,
+        message: 'Minimum salary cannot exceed maximum salary.'
       });
     }
 

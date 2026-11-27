@@ -3,7 +3,7 @@ const User = require('../models/User');
 const Company = require('../models/Company');
 const { signToken } = require('../config/jwt');
 const { sendPasswordResetEmail } = require('../utils/emailService');
-const { normalizeStringArray } = require('../utils/helpers');
+const { escapeRegex, normalizeStringArray } = require('../utils/helpers');
 
 const formatUserPayload = (user) => ({
   id: user._id,
@@ -64,7 +64,9 @@ const register = async (req, res, next) => {
 
     if (safeRole === 'recruiter' && companyName) {
       const trimmedCompany = companyName.trim();
-      let company = await Company.findOne({ name: trimmedCompany });
+      let company = await Company.findOne({
+        name: { $regex: `^${escapeRegex(trimmedCompany)}$`, $options: 'i' }
+      });
       if (!company) {
         company = await Company.create({
           name: trimmedCompany,

@@ -16,19 +16,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 
-const JOB_CATEGORIES = [
-  'Software Engineering',
-  'Full-Stack Development',
-  'Frontend Development',
-  'Backend Development',
-  'Cloud & DevOps',
-  'Data & AI',
-  'QA & Testing',
-  'UI/UX Design',
-  'Cybersecurity',
-  'Technical Support',
-  'Business Analysis'
-];
+import { OPPORTUNITY_CATEGORIES } from '../constants/categories';
 
 const OpportunityDiscovery = ({
   opportunityType = 'Job',
@@ -326,7 +314,7 @@ const OpportunityDiscovery = ({
                 className="w-full text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-500"
               >
                 <option value="All">All Categories</option>
-                {JOB_CATEGORIES.map((cat) => (
+                {OPPORTUNITY_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>

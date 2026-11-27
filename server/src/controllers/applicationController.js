@@ -100,7 +100,7 @@ const getJobApplicants = async (req, res, next) => {
     }
 
     // Ensure the recruiter owns the job or is admin
-    if (!job.recruiter.equals(req.user._id) && req.user.role !== 'admin') {
+    if (!job.recruiter?.equals(req.user._id) && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'Unauthorized: You can only view applicants for your own listings.'
@@ -139,15 +139,15 @@ const updateApplicationStatus = async (req, res, next) => {
     }
 
     const application = await Application.findById(applicationId).populate('job');
-    if (!application) {
+    if (!application || !application.job) {
       return res.status(404).json({
         success: false,
-        message: 'Application not found.'
+        message: 'Application or associated job listing not found.'
       });
     }
 
     // Verify recruiter owns the job
-    if (!application.job.recruiter.equals(req.user._id) && req.user.role !== 'admin') {
+    if (!application.job.recruiter?.equals(req.user._id) && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'Unauthorized: You can only manage applications for your own listings.'
