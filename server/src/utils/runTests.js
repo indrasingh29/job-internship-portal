@@ -5,7 +5,7 @@ if (!process.env.NODE_ENV) {
 require('dotenv').config();
 const http = require('http');
 const app = require('../app');
-const { connectDB, disconnectDB } = require('../config/db');
+const { connectDB, disconnectDB, isInMemoryFallbackAllowed } = require('../config/db');
 const { getLastTestEmail, clearTestOutbox } = require('./emailService');
 const User = require('../models/User');
 const Company = require('../models/Company');
@@ -96,9 +96,12 @@ const runAllTests = async () => {
     baseUrl = `http://127.0.0.1:${port}`;
     console.log(`Test server running on ephemeral port ${port}...\n`);
 
-    // 1. Health Check
+    // 1. Health Check & Production DB Fallback Guard
     const health = await makeRequest('GET', '/api/health');
-    recordResult('Backend Health Check (/api/health)', health.status === 200 && health.data.status === 'online');
+    const prodGuardOk =
+      isInMemoryFallbackAllowed({ NODE_ENV: 'production', ALLOW_IN_MEMORY_DB: 'true' }) === false &&
+      isInMemoryFallbackAllowed({ NODE_ENV: 'production', ALLOW_IN_MEMORY_DB: 'false' }) === false;
+    recordResult('Backend Health Check (/api/health) & Prod DB Guard', health.status === 200 && health.data.status === 'online' && prodGuardOk);
 
     // 2. Public Statistics
     const publicStats = await makeRequest('GET', '/api/stats/public');
