@@ -1,21 +1,96 @@
 # JobPortal — Jobs & Internships Discovery Platform
 
-A full-stack MERN (MongoDB, Express.js, React.js, Node.js) web application for discovering full-time tech jobs and internships, managing hiring pipelines, and tracking applications.
+A full-stack **MERN** (MongoDB, Express.js, React.js, Node.js) web application for discovering full-time technology jobs and internships, managing recruitment pipelines, and tracking candidate applications.
+
+---
+
+## Live Links & Repository
+
+| Resource | Platform | URL |
+| :--- | :--- | :--- |
+| **Live Web App** | Render Static Site | https://job-portal-web-8a3p.onrender.com |
+| **Backend REST API** | Render Web Service | https://job-portal-api-halo.onrender.com |
+| **API Health Check** | Render Web Service | https://job-portal-api-halo.onrender.com/api/health |
+| **GitHub Repository** | GitHub (`main` branch) | https://github.com/indrasingh29/job-internship-portal |
 
 ---
 
 ## Key Features
 
-- **Public Discovery & Search:** Browse active jobs and internships with debounced keyword/company/skill search, location filtering, workplace mode (`Remote`, `Hybrid`, `Onsite`), job type, category, fresher eligibility, minimum salary/stipend filters, sorting, and pagination.
-- **Company Directory:** Explore company profiles with active opening counts and industry filtering.
-- **Role-Based Portals:**
-  - **Student / Candidate:** Dashboard overview with live opportunities, application tracking, saved-job bookmarks, full profile & education editor, and account password management.
-  - **Recruiter / Employer:** Create, edit, close/reopen, and delete job or internship postings, manage company profiles, review candidate profiles & resumes, update application statuses (`Applied`, `Shortlisted`, `Selected`, `Rejected`), and view pipeline analytics.
-  - **Administrator:** Manage users (activate/deactivate/delete with cascade cleanup), moderate job postings, and inspect live API & database telemetry.
-- **Authentication & Password Recovery:**
-  - JWT authentication with `bcryptjs` password hashing and environment-configured secrets (`JWT_SECRET` required in production).
-  - Complete **Forgot Password** and **Reset Password** flow using cryptographically random, SHA-256 hashed, single-use, time-limited tokens delivered via SMTP (`nodemailer`).
-  - Authenticated **Change Password** flow verifying current password before updating.
+- **Jobs & Internships Discovery:** Debounced search by job title, company name, or required skills, location search, workplace mode (`Remote`, `Hybrid`, `Onsite`), job type (`Full-time`, `Part-time`, `Contract`, `Internship`), domain category, fresher eligibility, minimum salary/stipend filters, sorting, and pagination.
+- **Company Directory:** Browse hiring companies with industry filters, headquarters/scale details, and live active opening counts.
+- **Role-Based Dashboards:**
+  - **Student / Candidate:** Dashboard overview with live opportunities, embedded Jobs & Internships browsers, application history with real-time status tracking (`Applied`, `Shortlisted`, `Selected`, `Rejected`), saved-job bookmarks, profile & education editor, and password management.
+  - **Recruiter / Employer:** Create, edit, close/reopen, and delete job or internship postings, manage company profiles, review candidate profiles & resumes, update applicant statuses, and inspect Recharts pipeline analytics.
+  - **Administrator:** Manage users (search, role/status filters, activate/deactivate, cascade delete), moderate job listings, and monitor live service & database telemetry.
+- **Authentication, Security & Password Recovery:**
+  - JWT authentication with `bcryptjs` password hashing and strict environment-based secret resolution in production (`JWT_SECRET`).
+  - Complete **Forgot Password** and **Reset Password** workflow with cryptographically random, SHA-256 hashed, single-use, 15-minute expiring tokens delivered via SMTP (`nodemailer`).
+  - Authenticated **Change Password** verification (`PUT /api/auth/change-password`).
+  - Helmet security headers, strict production CORS whitelist, reverse-proxy-aware rate limiting (`trust proxy`), NoSQL operator injection guards, and HTTP/HTTPS URL sanitization.
+
+---
+
+## System Architecture
+
+```mermaid
+flowchart TD
+    subgraph ClientLayer["Frontend SPA (React 19 + Vite + Tailwind CSS v4)"]
+        PublicPages["Public Pages (Home, Jobs, Internships, Companies, About, Contact)"]
+        AuthPages["Auth & Recovery (Login, Register, Forgot Password, Reset Password)"]
+        Dashboards["Role Dashboards (Student, Recruiter, Admin + Account Settings)"]
+        AxiosClient["Axios Client (JWT Bearer Interceptor + 401 Session Handling)"]
+    end
+
+    subgraph ServerLayer["Backend REST API (Node.js + Express.js)"]
+        Security["Security Layer (Helmet, Strict CORS, Trust Proxy, Rate Limiters)"]
+        AuthGuard["JWT Protect & RBAC Authorize Middleware (Student / Recruiter / Admin)"]
+        Controllers["Controllers (Auth, Jobs, Companies, Applications, SavedJobs, Stats, Admin)"]
+        EmailSvc["SMTP Email Service (Nodemailer Password Reset Delivery)"]
+        ErrorHandler["Global Error Handler (CastError, DuplicateKey, ValidationError, JWT)"]
+    end
+
+    subgraph DataLayer["Database Layer (MongoDB Atlas / Mongoose ODM)"]
+        Users[("Users (bcrypt hashes, profiles, hashed reset tokens)")]
+        Companies[("Companies (slugs, industries, profiles)")]
+        Jobs[("Jobs & Internships (text & compound filter indexes)")]
+        Applications[("Applications (unique index on job + student)")]
+        SavedJobs[("SavedJobs (unique index on student + job)")]
+    end
+
+    PublicPages --> AxiosClient
+    AuthPages --> AxiosClient
+    Dashboards --> AxiosClient
+
+    AxiosClient -->|HTTPS REST API| Security
+    Security --> AuthGuard
+    AuthGuard --> Controllers
+    Controllers --> EmailSvc
+    Controllers --> ErrorHandler
+    Controllers --> Users
+    Controllers --> Companies
+    Controllers --> Jobs
+    Controllers --> Applications
+    Controllers --> SavedJobs
+```
+
+---
+
+## Technology Stack
+
+### Frontend (`client/`)
+- **React 19 + Vite 8** — Fast ESM bundling and single-page application routing (`react-router-dom` v7).
+- **Tailwind CSS v4** — Utility-first design system with custom violet brand palette and accessible keyboard focus styles.
+- **Axios** — Centralized HTTP client with Bearer token injection and 401 session cleanup.
+- **Recharts** — Interactive SVG bar and donut charts for recruiter hiring analytics.
+- **Lucide React** — Consistent icon system.
+
+### Backend (`server/`)
+- **Node.js & Express.js** — Modular REST API with centralized error handling.
+- **MongoDB & Mongoose ODM** — Schema validation, relational population, compound unique indexes, and text search indexes.
+- **JSON Web Tokens (`jsonwebtoken`) & `bcryptjs`** — Stateless authentication and salted password hashing.
+- **Nodemailer** — Configurable SMTP email delivery for password reset links.
+- **Helmet, CORS & `express-rate-limit`** — Security headers, origin allowlisting, and endpoint rate limiting.
 
 ---
 
@@ -23,26 +98,42 @@ A full-stack MERN (MongoDB, Express.js, React.js, Node.js) web application for d
 
 ```text
 job-internship-portal/
-├── client/                  # React + Vite + Tailwind CSS v4 frontend
+├── client/
 │   ├── public/
-│   │   └── _redirects       # Static SPA rewrite rule
+│   │   └── _redirects                # Static SPA rewrite rule
 │   └── src/
-│       ├── components/      # Navbar, Footer, OpportunityCard, OpportunityDiscovery, CompanyCard, AccountSettingsPanel
-│       ├── context/         # AuthContext (session, saved jobs synchronization, auth actions)
-│       ├── pages/           # Home, Jobs, Internships, Companies, Auth, Forgot/Reset Password, Dashboards
-│       └── services/        # Axios client with Bearer token injection and 401 handling
-├── server/                  # Node.js + Express + Mongoose REST API
+│       ├── components/               # Navbar, Footer, OpportunityCard, OpportunityDiscovery, CompanyCard, AccountSettingsPanel
+│       ├── constants/                # Shared opportunity categories
+│       ├── context/                  # AuthContext (session, saved jobs synchronization, auth actions)
+│       ├── pages/                    # Home, Jobs, Internships, Companies, Auth, Forgot/Reset Password, Dashboards
+│       ├── services/                 # Axios API client
+│       └── utils/                    # Safe external URL validator
+├── server/
 │   ├── src/
-│   │   ├── config/          # MongoDB connection & JWT helpers
-│   │   ├── controllers/     # Auth, Jobs, Companies, Applications, SavedJobs, Stats, Admin
-│   │   ├── middleware/      # JWT protect, RBAC authorize, rate limiters, global error handler
-│   │   ├── models/          # User, Company, Job, Application, SavedJob
-│   │   ├── routes/          # Express route modules
-│   │   ├── seed/            # Idempotent database seeder
-│   │   └── utils/           # Email service, helpers, automated API verification suite
-│   └── .env.example         # Backend environment variable reference
-└── render.yaml              # Render infrastructure blueprint
+│   │   ├── config/                   # MongoDB connection (no silent fallback in prod) & JWT helpers
+│   │   ├── controllers/              # Auth, Jobs, Companies, Applications, SavedJobs, Stats, Admin
+│   │   ├── middleware/               # protect, authorize, rate limiters, error middleware
+│   │   ├── models/                   # User, Company, Job, Application, SavedJob
+│   │   ├── routes/                   # Express API routers
+│   │   ├── seed/                     # Idempotent database seeder (50 companies, 52 listings, demo accounts)
+│   │   └── utils/                    # Email service, input/URL helpers, automated API test suite
+│   └── .env.example                  # Backend environment template
+└── render.yaml                       # Render Infrastructure-as-Code blueprint
 ```
+
+---
+
+## Key API Endpoints
+
+| Area | Endpoints |
+| :--- | :--- |
+| **Health** | `GET /api/health` |
+| **Auth & Recovery** | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`, `PUT /api/auth/profile`, `PUT /api/auth/change-password`, `POST /api/auth/forgot-password`, `GET /api/auth/reset-password/:token`, `POST /api/auth/reset-password/:token` |
+| **Jobs & Internships** | `GET /api/jobs`, `GET /api/jobs/:id`, `GET /api/jobs/recruiter/my-postings`, `POST /api/jobs`, `PUT /api/jobs/:id`, `DELETE /api/jobs/:id` |
+| **Companies** | `GET /api/companies`, `GET /api/companies/meta/industries`, `GET /api/companies/:identifier`, `PUT /api/companies/my-company` |
+| **Applications** | `POST /api/applications/apply/:jobId`, `GET /api/applications/my-applications`, `GET /api/applications/job/:jobId`, `PUT /api/applications/:applicationId/status` |
+| **Saved Jobs** | `GET /api/saved-jobs`, `GET /api/saved-jobs/check/:jobId`, `POST /api/saved-jobs/:jobId`, `DELETE /api/saved-jobs/:jobId` |
+| **Stats & Admin** | `GET /api/stats/public`, `GET /api/stats/student`, `GET /api/stats/recruiter`, `GET /api/stats/admin`, `GET /api/admin/users`, `PUT /api/admin/users/:id/toggle-status`, `DELETE /api/admin/users/:id`, `GET /api/admin/jobs` |
 
 ---
 
@@ -54,11 +145,11 @@ job-internship-portal/
 | :--- | :--- | :--- |
 | `PORT` | No (default `5000`) | HTTP port for the Express server |
 | `NODE_ENV` | Yes | `development`, `test`, or `production` |
-| `MONGODB_URI` | Yes (production) | MongoDB Atlas connection string |
+| `MONGODB_URI` | Yes (production) | MongoDB Atlas connection string (`.../job_portal?retryWrites=true&w=majority`) |
 | `JWT_SECRET` | Yes (production) | Secret used to sign and verify JWTs (no fallback in production) |
 | `JWT_EXPIRES_IN` | No (default `7d`) | JWT expiration window |
-| `CLIENT_URL` | Yes (production) | Frontend origin for CORS and password reset links |
-| `ALLOW_IN_MEMORY_DB` | No | Set `false` in production; `true` allows local in-memory MongoDB for dev/test |
+| `CLIENT_URL` | Yes (production) | Whitelisted frontend origin (e.g. `https://job-portal-web-8a3p.onrender.com`) |
+| `ALLOW_IN_MEMORY_DB` | No | Must be `false` in production; `true` allows local in-memory MongoDB in dev/test |
 | `SMTP_HOST` | Yes (production) | SMTP server hostname for password reset emails |
 | `SMTP_PORT` | No (default `587`) | SMTP port |
 | `SMTP_SECURE` | No (default `false`) | Set `true` for TLS on port `465` |
@@ -70,11 +161,11 @@ job-internship-portal/
 
 | Variable | Required | Description |
 | :--- | :--- | :--- |
-| `VITE_API_URL` | Yes | Backend API base URL (e.g. `http://localhost:5000/api` or `https://<api-service>.onrender.com/api`) |
+| `VITE_API_URL` | Yes | Backend API base URL (e.g. `http://localhost:5000/api` locally or `https://job-portal-api-halo.onrender.com/api` in production) |
 
 ---
 
-## Local Development Setup
+## Local Development & Testing
 
 ### 1. Backend
 
@@ -82,8 +173,8 @@ job-internship-portal/
 cd server
 npm install
 cp .env.example .env   # On Windows PowerShell: copy .env.example .env
-npm run seed           # Seeds initial companies, jobs, and demo accounts
-npm test               # Runs automated API verification suite
+npm run seed           # Seeds 50 companies, 52 listings, and demo accounts
+npm test               # Runs 23-case automated API & security verification suite
 npm run dev            # Starts API on http://localhost:5000
 ```
 
@@ -93,21 +184,19 @@ npm run dev            # Starts API on http://localhost:5000
 cd client
 npm install
 cp .env.example .env   # On Windows PowerShell: copy .env.example .env
+npm run lint           # Runs oxlint across src/
+npm run build          # Builds production bundle into client/dist/
 npm run dev            # Starts Vite dev server on http://localhost:5173
 ```
 
 ---
 
-## Render Deployment Notes
+## Render Production Deployment
 
 1. **Backend Web Service (`job-portal-api`):**
-   - Root Directory: `server`
-   - Build Command: `npm install`
-   - Start Command: `npm start`
-   - Ensure `NODE_ENV=production`, `ALLOW_IN_MEMORY_DB=false`, `MONGODB_URI`, `JWT_SECRET`, `CLIENT_URL`, and SMTP variables are configured in Render Dashboard.
+   - Root Directory: `server` | Build Command: `npm install` | Start Command: `npm start` | Health Check Path: `/api/health`
+   - Required Environment Variables: `NODE_ENV=production`, `ALLOW_IN_MEMORY_DB=false`, `PORT=5000` (or Render default), `MONGODB_URI`, `JWT_SECRET`, `JWT_EXPIRES_IN=7d`, `CLIENT_URL=https://job-portal-web-8a3p.onrender.com`, and `SMTP_*` / `EMAIL_FROM`.
 2. **Frontend Static Site (`job-portal-web`):**
-   - Root Directory: `client`
-   - Build Command: `npm install && npm run build`
-   - Publish Directory: `dist`
-   - Set `VITE_API_URL` to your deployed backend `/api` URL.
-   - **Important SPA Rewrite Rule:** In Render Dashboard -> Static Site -> **Redirects/Rewrites**, add a rule with Source `/*`, Destination `/index.html`, Action `Rewrite` (also defined in `render.yaml`) so direct page reloads on `/jobs`, `/login`, `/forgot-password`, and `/reset-password/:token` resolve properly.
+   - Root Directory: `client` | Build Command: `npm install && npm run build` | Publish Directory: `dist`
+   - Environment Variable: `VITE_API_URL=https://job-portal-api-halo.onrender.com/api`
+   - Redirects/Rewrites Rule: Source `/*` → Destination `/index.html` → Action `Rewrite` (`200`) for direct SPA route navigation and refreshes.
