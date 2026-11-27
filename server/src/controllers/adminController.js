@@ -1,6 +1,8 @@
 const User = require('../models/User');
 const Job = require('../models/Job');
 const Application = require('../models/Application');
+const SavedJob = require('../models/SavedJob');
+const { escapeRegex } = require('../utils/helpers');
 
 // @desc    Get all users with search, role filter, and pagination
 // @route   GET /api/admin/users
@@ -19,14 +21,15 @@ const getAllUsers = async (req, res, next) => {
     }
 
     if (search && search.trim() !== '') {
+      const safeSearch = escapeRegex(search.trim());
       query.$or = [
-        { name: { $regex: search.trim(), $options: 'i' } },
-        { email: { $regex: search.trim(), $options: 'i' } }
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { email: { $regex: safeSearch, $options: 'i' } }
       ];
     }
 
-    const pageNum = parseInt(page, 10) || 1;
-    const limitNum = parseInt(limit, 10) || 15;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 15));
     const skip = (pageNum - 1) * limitNum;
 
     const total = await User.countDocuments(query);
@@ -40,7 +43,7 @@ const getAllUsers = async (req, res, next) => {
       success: true,
       total,
       page: pageNum,
-      pages: Math.ceil(total / limitNum),
+      pages: Math.max(1, Math.ceil(total / limitNum)),
       count: users.length,
       users
     });
@@ -84,7 +87,7 @@ const toggleUserStatus = async (req, res, next) => {
   }
 };
 
-// @desc    Delete a user and clean up
+// @desc    Delete a user and clean up associated records
 // @route   DELETE /api/admin/users/:id
 // @access  Private (Admin)
 const deleteUser = async (req, res, next) => {
@@ -106,9 +109,24 @@ const deleteUser = async (req, res, next) => {
       });
     }
 
-    // Cleanup related data
-    await Application.deleteMany({ student: id });
-    await Job.deleteMany({ recruiter: id });
+    const recruiterJobs = await Job.find({ recruiter: id }).select('_id');
+    const recruiterJobIds = recruiterJobs.map((j) => j._id);
+
+    await Promise.all([
+      Application.deleteMany({
+        $or: [
+          { student: id },
+          ...(recruiterJobIds.length > 0 ? [{ job: { $in: recruiterJobIds } }] : [])
+        ]
+      }),
+      SavedJob.deleteMany({
+        $or: [
+          { student: id },
+          ...(recruiterJobIds.length > 0 ? [{ job: { $in: recruiterJobIds } }] : [])
+        ]
+      }),
+      Job.deleteMany({ recruiter: id })
+    ]);
 
     res.json({
       success: true,
@@ -124,15 +142,23 @@ const deleteUser = async (req, res, next) => {
 // @access  Private (Admin)
 const getAllJobsAdmin = async (req, res, next) => {
   try {
-    const { search, page = 1, limit = 15 } = req.query;
+    const { search, status, opportunityType, page = 1, limit = 15 } = req.query;
     const query = {};
 
-    if (search) {
-      query.title = { $regex: search, $options: 'i' };
+    if (status && status !== 'All') {
+      query.status = status;
     }
 
-    const pageNum = parseInt(page, 10) || 1;
-    const limitNum = parseInt(limit, 10) || 15;
+    if (opportunityType && opportunityType !== 'All') {
+      query.opportunityType = opportunityType;
+    }
+
+    if (search && search.trim() !== '') {
+      query.title = { $regex: escapeRegex(search.trim()), $options: 'i' };
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 15));
     const skip = (pageNum - 1) * limitNum;
 
     const total = await Job.countDocuments(query);
@@ -147,7 +173,7 @@ const getAllJobsAdmin = async (req, res, next) => {
       success: true,
       total,
       page: pageNum,
-      pages: Math.ceil(total / limitNum),
+      pages: Math.max(1, Math.ceil(total / limitNum)),
       jobs
     });
   } catch (error) {

@@ -24,7 +24,7 @@ const applyJob = async (req, res, next) => {
       });
     }
 
-    if (new Date(job.deadline) < new Date()) {
+    if (job.deadline && new Date(job.deadline) < new Date()) {
       return res.status(400).json({
         success: false,
         message: 'The application deadline for this opportunity has passed.'

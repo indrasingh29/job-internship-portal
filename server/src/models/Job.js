@@ -96,7 +96,7 @@ const jobSchema = new mongoose.Schema({
   },
   isDemo: {
     type: Boolean,
-    default: true
+    default: false
   },
   viewsCount: {
     type: Number,
@@ -106,10 +106,11 @@ const jobSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Indexes for fast searching & filtering
+// Indexes for fast searching, filtering, and sorting
 jobSchema.index({ title: 'text', description: 'text', requiredSkills: 'text' });
-jobSchema.index({ opportunityType: 1, status: 1 });
+jobSchema.index({ opportunityType: 1, status: 1, deadline: 1, createdAt: -1 });
+jobSchema.index({ status: 1, category: 1, workplaceType: 1, isFresherEligible: 1 });
 jobSchema.index({ company: 1 });
-jobSchema.index({ recruiter: 1 });
+jobSchema.index({ recruiter: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Job', jobSchema);

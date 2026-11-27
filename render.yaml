@@ -1,5 +1,4 @@
-# Render Deployment Blueprint for Job & Internship Portal
-# Project Owner: Indra Singh Jeena (B.Tech CSE Minor Project 2026–27)
+# Render Deployment Blueprint for JobPortal
 
 services:
   # 1. Backend REST API (Web Service)
@@ -26,6 +25,18 @@ services:
         sync: false
       - key: ALLOW_IN_MEMORY_DB
         value: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_SECURE
+        value: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
 
   # 2. Frontend React Client (Static Site)
   - type: web

@@ -1,5 +1,6 @@
 const Company = require('../models/Company');
 const Job = require('../models/Job');
+const { escapeRegex } = require('../utils/helpers');
 
 // @desc    Get all companies with search, industry filter, and pagination
 // @route   GET /api/companies
@@ -9,16 +10,16 @@ const getCompanies = async (req, res, next) => {
     const { search, industry, page = 1, limit = 12 } = req.query;
     const query = {};
 
-    if (search) {
-      query.name = { $regex: search, $options: 'i' };
+    if (search && search.trim() !== '') {
+      query.name = { $regex: escapeRegex(search.trim()), $options: 'i' };
     }
 
     if (industry && industry !== 'All') {
       query.industry = industry;
     }
 
-    const pageNum = parseInt(page, 10) || 1;
-    const limitNum = parseInt(limit, 10) || 12;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 12));
     const skip = (pageNum - 1) * limitNum;
 
     const total = await Company.countDocuments(query);
@@ -27,19 +28,29 @@ const getCompanies = async (req, res, next) => {
       .skip(skip)
       .limit(limitNum);
 
-    // Compute active jobs count for each company
-    const companyIds = companies.map(c => c._id);
+    const now = new Date();
+    const companyIds = companies.map((c) => c._id);
     const jobCounts = await Job.aggregate([
-      { $match: { company: { $in: companyIds }, status: 'Active' } },
+      {
+        $match: {
+          company: { $in: companyIds },
+          status: 'Active',
+          $or: [
+            { deadline: { $gte: now } },
+            { deadline: null },
+            { deadline: { $exists: false } }
+          ]
+        }
+      },
       { $group: { _id: '$company', count: { $sum: 1 } } }
     ]);
 
     const countMap = {};
-    jobCounts.forEach(item => {
+    jobCounts.forEach((item) => {
       countMap[item._id.toString()] = item.count;
     });
 
-    const enrichedCompanies = companies.map(comp => ({
+    const enrichedCompanies = companies.map((comp) => ({
       ...comp.toObject(),
       activeJobsCount: countMap[comp._id.toString()] || 0
     }));
@@ -48,7 +59,7 @@ const getCompanies = async (req, res, next) => {
       success: true,
       total,
       page: pageNum,
-      pages: Math.ceil(total / limitNum),
+      pages: Math.max(1, Math.ceil(total / limitNum)),
       count: enrichedCompanies.length,
       companies: enrichedCompanies
     });
@@ -78,9 +89,16 @@ const getCompanyByIdOrSlug = async (req, res, next) => {
       });
     }
 
-    // Fetch active jobs/internships for this company
-    const opportunities = await Job.find({ company: company._id, status: 'Active' })
-      .sort({ createdAt: -1 });
+    const now = new Date();
+    const opportunities = await Job.find({
+      company: company._id,
+      status: 'Active',
+      $or: [
+        { deadline: { $gte: now } },
+        { deadline: null },
+        { deadline: { $exists: false } }
+      ]
+    }).sort({ createdAt: -1 });
 
     res.json({
       success: true,
@@ -111,7 +129,7 @@ const getIndustries = async (req, res, next) => {
 
 // @desc    Create or update recruiter's company profile
 // @route   PUT /api/companies/my-company
-// @access  Private (Recruiter)
+// @access  Private (Recruiter / Admin)
 const updateMyCompany = async (req, res, next) => {
   try {
     const { name, industry, description, website, headquarters, employeeCount, logoUrl } = req.body;
@@ -122,15 +140,20 @@ const updateMyCompany = async (req, res, next) => {
     }
 
     if (!company) {
-      // Create new company
+      if (!name || !name.trim() || !description || !description.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please provide company name and description.'
+        });
+      }
       company = new Company({
-        name,
-        industry: industry || 'Technology',
-        description,
-        website,
-        headquarters,
-        employeeCount,
-        logoUrl,
+        name: name.trim(),
+        industry: industry?.trim() || 'Technology',
+        description: description.trim(),
+        website: website?.trim() || '',
+        headquarters: headquarters?.trim() || 'India',
+        employeeCount: employeeCount?.trim() || '50+',
+        logoUrl: logoUrl?.trim() || '',
         recruiter: req.user._id,
         isDemo: false
       });
@@ -139,14 +162,13 @@ const updateMyCompany = async (req, res, next) => {
       req.user.company = company._id;
       await req.user.save();
     } else {
-      // Update existing
-      if (name) company.name = name;
-      if (industry) company.industry = industry;
-      if (description) company.description = description;
-      if (website !== undefined) company.website = website;
-      if (headquarters !== undefined) company.headquarters = headquarters;
-      if (employeeCount !== undefined) company.employeeCount = employeeCount;
-      if (logoUrl !== undefined) company.logoUrl = logoUrl;
+      if (name && name.trim()) company.name = name.trim();
+      if (industry && industry.trim()) company.industry = industry.trim();
+      if (description && description.trim()) company.description = description.trim();
+      if (website !== undefined) company.website = String(website).trim();
+      if (headquarters !== undefined) company.headquarters = String(headquarters).trim();
+      if (employeeCount !== undefined) company.employeeCount = String(employeeCount).trim();
+      if (logoUrl !== undefined) company.logoUrl = String(logoUrl).trim();
       await company.save();
     }
 

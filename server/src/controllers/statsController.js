@@ -9,9 +9,19 @@ const SavedJob = require('../models/SavedJob');
 // @access  Public
 const getPublicStats = async (req, res, next) => {
   try {
+    const now = new Date();
+    const activeFilter = {
+      status: 'Active',
+      $or: [
+        { deadline: { $gte: now } },
+        { deadline: null },
+        { deadline: { $exists: false } }
+      ]
+    };
+
     const [totalJobs, totalInternships, totalCompanies, totalApplications] = await Promise.all([
-      Job.countDocuments({ opportunityType: 'Job', status: 'Active' }),
-      Job.countDocuments({ opportunityType: 'Internship', status: 'Active' }),
+      Job.countDocuments({ ...activeFilter, opportunityType: 'Job' }),
+      Job.countDocuments({ ...activeFilter, opportunityType: 'Internship' }),
       Company.countDocuments(),
       Application.countDocuments()
     ]);
@@ -37,28 +47,28 @@ const getStudentStats = async (req, res, next) => {
   try {
     const studentId = req.user._id;
 
-    const [applications, savedCount] = await Promise.all([
+    const [applications, savedRecords] = await Promise.all([
       Application.find({ student: studentId }).populate({
         path: 'job',
         populate: { path: 'company', select: 'name logoUrl' }
       }).sort({ createdAt: -1 }),
-      SavedJob.countDocuments({ student: studentId })
+      SavedJob.find({ student: studentId }).populate('job', '_id')
     ]);
 
+    const savedCount = savedRecords.filter((s) => Boolean(s.job)).length;
     const totalApplied = applications.length;
     let pendingCount = 0;
     let shortlistedCount = 0;
     let rejectedCount = 0;
     let selectedCount = 0;
 
-    applications.forEach(app => {
+    applications.forEach((app) => {
       if (app.status === 'Applied') pendingCount++;
       else if (app.status === 'Shortlisted') shortlistedCount++;
       else if (app.status === 'Rejected') rejectedCount++;
       else if (app.status === 'Selected') selectedCount++;
     });
 
-    // Calculate profile completion percentage
     const p = req.user.profile || {};
     let points = 0;
     const totalPoints = 6;
@@ -91,16 +101,17 @@ const getStudentStats = async (req, res, next) => {
 
 // @desc    Get recruiter dashboard metrics & chart data
 // @route   GET /api/stats/recruiter
-// @access  Private (Recruiter)
+// @access  Private (Recruiter / Admin)
 const getRecruiterStats = async (req, res, next) => {
   try {
     const recruiterId = req.user._id;
 
     const myJobs = await Job.find({ recruiter: recruiterId });
-    const jobIds = myJobs.map(j => j._id);
+    const jobIds = myJobs.map((j) => j._id);
 
     const totalPostings = myJobs.length;
-    const activePostings = myJobs.filter(j => j.status === 'Active').length;
+    const activePostings = myJobs.filter((j) => j.status === 'Active').length;
+    const closedPostings = totalPostings - activePostings;
 
     const allApplications = await Application.find({ job: { $in: jobIds } })
       .populate('job', 'title opportunityType')
@@ -108,12 +119,11 @@ const getRecruiterStats = async (req, res, next) => {
       .sort({ createdAt: -1 });
 
     const totalApplicants = allApplications.length;
-    const shortlistedCount = allApplications.filter(a => a.status === 'Shortlisted').length;
-    const selectedCount = allApplications.filter(a => a.status === 'Selected').length;
-    const rejectedCount = allApplications.filter(a => a.status === 'Rejected').length;
-    const pendingCount = allApplications.filter(a => a.status === 'Applied').length;
+    const shortlistedCount = allApplications.filter((a) => a.status === 'Shortlisted').length;
+    const selectedCount = allApplications.filter((a) => a.status === 'Selected').length;
+    const rejectedCount = allApplications.filter((a) => a.status === 'Rejected').length;
+    const pendingCount = allApplications.filter((a) => a.status === 'Applied').length;
 
-    // Status distribution for charts
     const statusDistribution = [
       { name: 'Applied', value: pendingCount },
       { name: 'Shortlisted', value: shortlistedCount },
@@ -121,14 +131,13 @@ const getRecruiterStats = async (req, res, next) => {
       { name: 'Rejected', value: rejectedCount }
     ];
 
-    // Job applicant distribution for charts (top 5 postings)
     const jobApplicantMap = {};
-    allApplications.forEach(a => {
+    allApplications.forEach((a) => {
       const title = a.job?.title || 'Unknown Role';
       jobApplicantMap[title] = (jobApplicantMap[title] || 0) + 1;
     });
 
-    const jobApplicationsData = Object.keys(jobApplicantMap).slice(0, 6).map(title => ({
+    const jobApplicationsData = Object.keys(jobApplicantMap).slice(0, 6).map((title) => ({
       role: title.length > 20 ? title.substring(0, 20) + '...' : title,
       applicants: jobApplicantMap[title]
     }));
@@ -138,9 +147,12 @@ const getRecruiterStats = async (req, res, next) => {
       stats: {
         totalPostings,
         activePostings,
+        closedPostings,
         totalApplicants,
         shortlistedCount,
         selectedCount,
+        pendingCount,
+        rejectedCount,
         recentApplicants: allApplications.slice(0, 6),
         statusDistribution,
         jobApplicationsData
@@ -163,6 +175,7 @@ const getAdminStats = async (req, res, next) => {
       totalCompanies,
       totalJobs,
       totalInternships,
+      activeListings,
       totalApplications
     ] = await Promise.all([
       User.countDocuments(),
@@ -171,6 +184,7 @@ const getAdminStats = async (req, res, next) => {
       Company.countDocuments(),
       Job.countDocuments({ opportunityType: 'Job' }),
       Job.countDocuments({ opportunityType: 'Internship' }),
+      Job.countDocuments({ status: 'Active' }),
       Application.countDocuments()
     ]);
 
@@ -183,6 +197,7 @@ const getAdminStats = async (req, res, next) => {
         totalCompanies,
         totalJobs,
         totalInternships,
+        activeListings,
         totalApplications
       }
     });

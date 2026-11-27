@@ -88,9 +88,7 @@ app.get('/api/health', (req, res) => {
     },
     environment: process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString(),
-    project: 'Job & Internship Portal - B.Tech CSE Minor Project',
-    author: 'Indra Singh Jeena',
-    copyright: '© 2026 Indra Singh Jeena. All Rights Reserved.'
+    service: 'JobPortal REST API'
   });
 });
 

@@ -11,8 +11,7 @@ const { demoUsers, companiesData, generateOpportunities } = require('./seedData'
 
 const seedDataCore = async () => {
   console.log('====================================================');
-  console.log('  Job & Internship Portal - Database Seeding');
-  console.log('  B.Tech CSE Minor Project by Indra Singh Jeena');
+  console.log('  JobPortal - Database Seeding');
   console.log('====================================================');
 
   // 1. Seed Demo Users (Student, Recruiter, Admin)

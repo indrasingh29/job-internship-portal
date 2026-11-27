@@ -1,8 +1,14 @@
 const Job = require('../models/Job');
 const Company = require('../models/Company');
 const Application = require('../models/Application');
+const SavedJob = require('../models/SavedJob');
+const {
+  escapeRegex,
+  normalizeDeadlineEndOfDay,
+  normalizeStringArray
+} = require('../utils/helpers');
 
-// @desc    Get all jobs/internships with search, filters, pagination, and sorting
+// @desc    Get all active non-expired jobs/internships with search, filters, pagination, and sorting
 // @route   GET /api/jobs
 // @access  Public
 const getJobs = async (req, res, next) => {
@@ -16,73 +22,98 @@ const getJobs = async (req, res, next) => {
       category,
       jobType,
       companyId,
+      minSalary,
+      minStipend,
       sort = 'latest',
       page = 1,
       limit = 10
     } = req.query;
 
-    const query = { status: 'Active' };
+    const now = new Date();
+    const andConditions = [
+      { status: 'Active' },
+      {
+        $or: [
+          { deadline: { $gte: now } },
+          { deadline: null },
+          { deadline: { $exists: false } }
+        ]
+      }
+    ];
 
     if (opportunityType && opportunityType !== 'All') {
-      query.opportunityType = opportunityType;
+      andConditions.push({ opportunityType });
     }
 
     if (companyId) {
-      query.company = companyId;
+      andConditions.push({ company: companyId });
     }
 
     if (category && category !== 'All') {
-      query.category = category;
+      andConditions.push({ category });
     }
 
     if (workplaceType && workplaceType !== 'All') {
-      query.workplaceType = workplaceType;
+      andConditions.push({ workplaceType });
     }
 
     if (jobType && jobType !== 'All') {
-      query.jobType = jobType;
+      andConditions.push({ jobType });
     }
 
     if (isFresherEligible === 'true') {
-      query.isFresherEligible = true;
+      andConditions.push({ isFresherEligible: true });
+    }
+
+    if (minSalary && !Number.isNaN(Number(minSalary)) && Number(minSalary) > 0) {
+      andConditions.push({ salaryMax: { $gte: Number(minSalary) } });
+    }
+
+    if (minStipend && !Number.isNaN(Number(minStipend)) && Number(minStipend) > 0) {
+      andConditions.push({ stipendAmount: { $gte: Number(minStipend) } });
     }
 
     if (location && location.trim() !== '') {
-      query.location = { $regex: location.trim(), $options: 'i' };
+      const safeLocation = escapeRegex(location.trim());
+      andConditions.push({ location: { $regex: safeLocation, $options: 'i' } });
     }
 
     if (search && search.trim() !== '') {
-      const term = search.trim();
+      const safeTerm = escapeRegex(search.trim());
       const matchingCompanies = await Company.find({
-        name: { $regex: term, $options: 'i' }
+        name: { $regex: safeTerm, $options: 'i' }
       }).select('_id');
-      const companyIds = matchingCompanies.map(c => c._id);
+      const companyIds = matchingCompanies.map((c) => c._id);
 
-      query.$or = [
-        { title: { $regex: term, $options: 'i' } },
-        { requiredSkills: { $regex: term, $options: 'i' } },
-        { description: { $regex: term, $options: 'i' } },
-        ...(companyIds.length > 0 ? [{ company: { $in: companyIds } }] : [])
-      ];
+      andConditions.push({
+        $or: [
+          { title: { $regex: safeTerm, $options: 'i' } },
+          { requiredSkills: { $regex: safeTerm, $options: 'i' } },
+          { description: { $regex: safeTerm, $options: 'i' } },
+          { category: { $regex: safeTerm, $options: 'i' } },
+          ...(companyIds.length > 0 ? [{ company: { $in: companyIds } }] : [])
+        ]
+      });
     }
 
-    // Sorting strategy
+    const query = andConditions.length > 1 ? { $and: andConditions } : andConditions[0];
+
     let sortOptions = { createdAt: -1 };
     if (sort === 'salary_high') {
-      sortOptions = { salaryMax: -1, stipendAmount: -1 };
+      sortOptions = { salaryMax: -1, stipendAmount: -1, createdAt: -1 };
     } else if (sort === 'salary_low') {
-      sortOptions = { salaryMin: 1, stipendAmount: 1 };
+      sortOptions = { salaryMin: 1, stipendAmount: 1, createdAt: -1 };
     } else if (sort === 'deadline') {
-      sortOptions = { deadline: 1 };
+      sortOptions = { deadline: 1, createdAt: -1 };
     }
 
-    const pageNum = parseInt(page, 10) || 1;
-    const limitNum = parseInt(limit, 10) || 10;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 10));
     const skip = (pageNum - 1) * limitNum;
 
     const total = await Job.countDocuments(query);
     const jobs = await Job.find(query)
-      .populate('company', 'name slug industry logoUrl headquarters isDemo')
+      .populate('company', 'name slug industry logoUrl headquarters')
       .sort(sortOptions)
       .skip(skip)
       .limit(limitNum);
@@ -91,7 +122,7 @@ const getJobs = async (req, res, next) => {
       success: true,
       total,
       page: pageNum,
-      pages: Math.ceil(total / limitNum),
+      pages: Math.max(1, Math.ceil(total / limitNum)),
       count: jobs.length,
       jobs
     });
@@ -105,8 +136,12 @@ const getJobs = async (req, res, next) => {
 // @access  Public
 const getJobById = async (req, res, next) => {
   try {
-    const job = await Job.findById(req.params.id)
-      .populate('company', 'name slug industry description website logoUrl headquarters employeeCount isDemo')
+    const job = await Job.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { viewsCount: 1 } },
+      { new: true }
+    )
+      .populate('company', 'name slug industry description website logoUrl headquarters employeeCount')
       .populate('recruiter', 'name email');
 
     if (!job) {
@@ -115,10 +150,6 @@ const getJobById = async (req, res, next) => {
         message: 'Opportunity not found.'
       });
     }
-
-    // Increment views count non-blockingly
-    job.viewsCount = (job.viewsCount || 0) + 1;
-    await job.save();
 
     res.json({
       success: true,
@@ -131,13 +162,12 @@ const getJobById = async (req, res, next) => {
 
 // @desc    Create new job / internship opportunity
 // @route   POST /api/jobs
-// @access  Private (Recruiter)
+// @access  Private (Recruiter / Admin)
 const createJob = async (req, res, next) => {
   try {
     let companyId = req.user.company;
 
     if (!companyId) {
-      // If recruiter hasn't registered a company yet, create a default profile
       const defaultCompany = await Company.create({
         name: `${req.user.name}'s Organization`,
         industry: 'Technology',
@@ -170,28 +200,52 @@ const createJob = async (req, res, next) => {
       deadline
     } = req.body;
 
+    if (!title || !title.trim() || !description || !description.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide both a title and description for the opportunity.'
+      });
+    }
+
+    const resolvedOpportunityType = opportunityType === 'Internship' ? 'Internship' : 'Job';
+    const resolvedJobType =
+      resolvedOpportunityType === 'Internship'
+        ? (jobType === 'Part-time' || jobType === 'Internship' ? jobType : 'Internship')
+        : (jobType && ['Full-time', 'Part-time', 'Contract'].includes(jobType) ? jobType : 'Full-time');
+
+    const resolvedDeadline = normalizeDeadlineEndOfDay(deadline);
+    if (!resolvedDeadline) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid application deadline date.'
+      });
+    }
+
     const job = await Job.create({
-      title,
+      title: title.trim(),
       company: companyId,
       recruiter: req.user._id,
-      opportunityType: opportunityType || 'Job',
-      jobType: jobType || 'Full-time',
+      opportunityType: resolvedOpportunityType,
+      jobType: resolvedJobType,
       workplaceType: workplaceType || 'Onsite',
-      location: location || 'Bangalore, India',
-      category: category || 'Software Engineering',
-      description,
-      responsibilities: Array.isArray(responsibilities) ? responsibilities : (responsibilities ? responsibilities.split('\n') : []),
-      requirements: Array.isArray(requirements) ? requirements : (requirements ? requirements.split('\n') : []),
-      requiredSkills: Array.isArray(requiredSkills) ? requiredSkills : (requiredSkills ? requiredSkills.split(',').map(s => s.trim()) : []),
-      experienceLevel: experienceLevel || 'Fresher / Entry Level',
-      isFresherEligible: isFresherEligible !== undefined ? isFresherEligible : true,
-      salaryMin: salaryMin || 0,
-      salaryMax: salaryMax || 0,
-      stipendAmount: stipendAmount || 0,
-      openings: openings || 1,
-      deadline: deadline ? new Date(deadline) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      location: location?.trim() || 'Bangalore, India',
+      category: category?.trim() || 'Software Engineering',
+      description: description.trim(),
+      responsibilities: normalizeStringArray(responsibilities, '\n'),
+      requirements: normalizeStringArray(requirements, '\n'),
+      requiredSkills: normalizeStringArray(requiredSkills, ','),
+      experienceLevel: experienceLevel?.trim() || 'Fresher / Entry Level',
+      isFresherEligible: isFresherEligible !== undefined ? Boolean(isFresherEligible) : true,
+      salaryMin: Math.max(0, Number(salaryMin) || 0),
+      salaryMax: Math.max(0, Number(salaryMax) || 0),
+      stipendAmount: Math.max(0, Number(stipendAmount) || 0),
+      openings: Math.max(1, parseInt(openings, 10) || 1),
+      deadline: resolvedDeadline,
+      status: 'Active',
       isDemo: false
     });
+
+    await job.populate('company', 'name slug industry logoUrl headquarters');
 
     res.status(201).json({
       success: true,
@@ -217,7 +271,6 @@ const updateJob = async (req, res, next) => {
       });
     }
 
-    // Check ownership: Must be the creating recruiter or an admin
     if (!job.recruiter.equals(req.user._id) && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
@@ -225,11 +278,61 @@ const updateJob = async (req, res, next) => {
       });
     }
 
+    const updates = {};
+    const {
+      title,
+      opportunityType,
+      jobType,
+      workplaceType,
+      location,
+      category,
+      description,
+      responsibilities,
+      requirements,
+      requiredSkills,
+      experienceLevel,
+      isFresherEligible,
+      salaryMin,
+      salaryMax,
+      stipendAmount,
+      openings,
+      deadline,
+      status
+    } = req.body;
+
+    if (title !== undefined) updates.title = String(title).trim();
+    if (opportunityType !== undefined) updates.opportunityType = opportunityType;
+    if (jobType !== undefined) updates.jobType = jobType;
+    if (workplaceType !== undefined) updates.workplaceType = workplaceType;
+    if (location !== undefined) updates.location = String(location).trim();
+    if (category !== undefined) updates.category = String(category).trim();
+    if (description !== undefined) updates.description = String(description).trim();
+    if (responsibilities !== undefined) updates.responsibilities = normalizeStringArray(responsibilities, '\n');
+    if (requirements !== undefined) updates.requirements = normalizeStringArray(requirements, '\n');
+    if (requiredSkills !== undefined) updates.requiredSkills = normalizeStringArray(requiredSkills, ',');
+    if (experienceLevel !== undefined) updates.experienceLevel = String(experienceLevel).trim();
+    if (isFresherEligible !== undefined) updates.isFresherEligible = Boolean(isFresherEligible);
+    if (salaryMin !== undefined) updates.salaryMin = Math.max(0, Number(salaryMin) || 0);
+    if (salaryMax !== undefined) updates.salaryMax = Math.max(0, Number(salaryMax) || 0);
+    if (stipendAmount !== undefined) updates.stipendAmount = Math.max(0, Number(stipendAmount) || 0);
+    if (openings !== undefined) updates.openings = Math.max(1, parseInt(openings, 10) || 1);
+    if (status !== undefined) updates.status = status;
+    if (deadline !== undefined) {
+      const normalized = normalizeDeadlineEndOfDay(deadline);
+      if (!normalized) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please provide a valid application deadline date.'
+        });
+      }
+      updates.deadline = normalized;
+    }
+
     const updatedJob = await Job.findByIdAndUpdate(
       req.params.id,
-      { $set: req.body },
+      { $set: updates },
       { new: true, runValidators: true }
-    ).populate('company');
+    ).populate('company', 'name slug industry logoUrl headquarters');
 
     res.json({
       success: true,
@@ -255,7 +358,6 @@ const deleteJob = async (req, res, next) => {
       });
     }
 
-    // Check ownership or admin
     if (!job.recruiter.equals(req.user._id) && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
@@ -264,12 +366,14 @@ const deleteJob = async (req, res, next) => {
     }
 
     await Job.findByIdAndDelete(req.params.id);
-    // Remove related applications
-    await Application.deleteMany({ job: req.params.id });
+    await Promise.all([
+      Application.deleteMany({ job: req.params.id }),
+      SavedJob.deleteMany({ job: req.params.id })
+    ]);
 
     res.json({
       success: true,
-      message: 'Opportunity and associated applications removed successfully.'
+      message: 'Opportunity and associated records removed successfully.'
     });
   } catch (error) {
     next(error);
@@ -285,19 +389,18 @@ const getRecruiterJobs = async (req, res, next) => {
       .populate('company', 'name logoUrl')
       .sort({ createdAt: -1 });
 
-    // Aggregate applicant counts for each posting
-    const jobIds = jobs.map(j => j._id);
+    const jobIds = jobs.map((j) => j._id);
     const applicantCounts = await Application.aggregate([
       { $match: { job: { $in: jobIds } } },
       { $group: { _id: '$job', count: { $sum: 1 } } }
     ]);
 
     const countMap = {};
-    applicantCounts.forEach(item => {
+    applicantCounts.forEach((item) => {
       countMap[item._id.toString()] = item.count;
     });
 
-    const enriched = jobs.map(j => ({
+    const enriched = jobs.map((j) => ({
       ...j.toObject(),
       applicantCount: countMap[j._id.toString()] || 0
     }));

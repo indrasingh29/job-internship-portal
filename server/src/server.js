@@ -7,9 +7,7 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   const server = app.listen(PORT, () => {
     console.log(`====================================================`);
-    console.log(`  Job & Internship Portal API Server Running`);
-    console.log(`  Project: B.Tech CSE Minor Project (2026–27)`);
-    console.log(`  Author:  Indra Singh Jeena`);
+    console.log(`  JobPortal API Server Running`);
     console.log(`  Port:    ${PORT}`);
     console.log(`  Env:     ${process.env.NODE_ENV || 'development'}`);
     console.log(`====================================================`);

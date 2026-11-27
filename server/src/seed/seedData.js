@@ -42,13 +42,13 @@ const demoUsers = [
     }
   },
   {
-    name: 'Indra Singh Jeena (Portal Admin)',
+    name: 'Portal Administrator',
     email: 'admin@demo.com',
     password: 'Admin@123',
     role: 'admin',
     profile: {
-      headline: 'System Administrator & Portal Architect',
-      bio: 'Platform administration and moderation for Job & Internship Portal Minor Project.',
+      headline: 'Platform Administrator',
+      bio: 'Platform administration, account oversight, and content moderation for JobPortal.',
       phone: '+91 99999 88888',
       location: 'Delhi NCR, India'
     }

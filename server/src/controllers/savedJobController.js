@@ -15,7 +15,7 @@ const saveJob = async (req, res, next) => {
 
     const existing = await SavedJob.findOne({ student: req.user._id, job: jobId });
     if (existing) {
-      return res.status(400).json({ success: false, message: 'Opportunity is already saved.' });
+      return res.status(200).json({ success: true, message: 'Opportunity is already saved.' });
     }
 
     await SavedJob.create({
@@ -65,14 +65,22 @@ const getSavedJobs = async (req, res, next) => {
     const saved = await SavedJob.find({ student: req.user._id })
       .populate({
         path: 'job',
-        populate: { path: 'company', select: 'name logoUrl headquarters industry' }
+        populate: { path: 'company', select: 'name slug logoUrl headquarters industry' }
       })
       .sort({ createdAt: -1 });
 
+    // Clean up orphaned saved references whose jobs no longer exist
+    const orphanedIds = saved.filter((s) => !s.job).map((s) => s._id);
+    if (orphanedIds.length > 0) {
+      await SavedJob.deleteMany({ _id: { $in: orphanedIds } });
+    }
+
+    const validJobs = saved.map((s) => s.job).filter(Boolean);
+
     res.json({
       success: true,
-      count: saved.length,
-      savedJobs: saved.map(s => s.job).filter(Boolean)
+      count: validJobs.length,
+      savedJobs: validJobs
     });
   } catch (error) {
     next(error);

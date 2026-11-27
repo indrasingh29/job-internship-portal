@@ -1,16 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Code,
-  Layers,
-  Database,
-  Shield,
-  Server,
-  Cloud,
+  Briefcase,
+  Building2,
+  ShieldCheck,
   CheckCircle2,
-  Cpu,
-  Lock,
-  ArrowRight
+  ArrowRight,
+  Users,
+  Search
 } from 'lucide-react';
 
 const AboutPage = () => {
@@ -18,150 +15,116 @@ const AboutPage = () => {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
       {/* Header */}
       <div className="text-center space-y-3">
-        <span className="text-xs font-bold uppercase tracking-wider text-brand-600 bg-brand-50 border border-brand-200 px-3 py-1 rounded-full">
-          Academic Project Overview
+        <span className="text-xs font-bold uppercase tracking-wider text-brand-700 bg-brand-50 border border-brand-200 px-3 py-1 rounded-full">
+          About JobPortal
         </span>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-          Job &amp; Internship Portal
+          Connecting Emerging Tech Talent with Great Teams
         </h1>
-        <p className="text-sm text-slate-600 max-w-2xl mx-auto leading-relaxed">
-          B.Tech CSE Minor Project (Academic Session 2026–27) designed and implemented by <strong className="text-slate-900">Indra Singh Jeena</strong>.
+        <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed">
+          JobPortal is a dedicated job and internship discovery platform built to help students, fresh graduates, and software professionals find meaningful opportunities with transparency and speed.
         </p>
       </div>
 
-      {/* Project Metadata Card */}
-      <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs grid grid-cols-2 sm:grid-cols-4 gap-6 text-xs text-center divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
-        <div className="pt-2 sm:pt-0">
-          <p className="text-slate-400 font-semibold uppercase tracking-wider">Project Owner</p>
-          <p className="text-sm font-extrabold text-slate-900 mt-1">Indra Singh Jeena</p>
+      {/* Value Pillars */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+          <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
+            <Search className="w-5 h-5" />
+          </div>
+          <h2 className="font-bold text-slate-900 text-base">Focused Discovery</h2>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            Search across full-time roles and internships with clear filters for workplace mode, required skills, compensation, and fresher eligibility.
+          </p>
         </div>
-        <div className="pt-2 sm:pt-0">
-          <p className="text-slate-400 font-semibold uppercase tracking-wider">Degree & Branch</p>
-          <p className="text-sm font-extrabold text-brand-600 mt-1">B.Tech CSE</p>
+
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+          <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
+            <Building2 className="w-5 h-5" />
+          </div>
+          <h2 className="font-bold text-slate-900 text-base">Built for Employers</h2>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            Recruiters can publish roles, manage company profiles, track applicant pipelines, and update candidate statuses from one centralized workspace.
+          </p>
         </div>
-        <div className="pt-2 sm:pt-0">
-          <p className="text-slate-400 font-semibold uppercase tracking-wider">Academic Session</p>
-          <p className="text-sm font-extrabold text-slate-900 mt-1">2026–27</p>
-        </div>
-        <div className="pt-2 sm:pt-0">
-          <p className="text-slate-400 font-semibold uppercase tracking-wider">Target Hosting</p>
-          <p className="text-sm font-extrabold text-slate-900 mt-1">Render + Atlas</p>
+
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+          <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <h2 className="font-bold text-slate-900 text-base">Security &amp; Integrity</h2>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            Role-based access controls, hashed credentials, and duplicate-application protections ensure reliable workflows for candidates and hiring teams.
+          </p>
         </div>
       </div>
 
-      {/* Architecture & Flow */}
-      <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-bold">
-            <Layers className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">Full-Stack MERN Architecture</h2>
-            <p className="text-xs text-slate-500">Tiered separation of concerns with asynchronous REST communication</p>
-          </div>
-        </div>
-
-        {/* Visual Architecture Representation */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-          <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3">
-            <span className="font-bold text-brand-600 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-              <Cpu className="w-4 h-4" /> Client Layer
-            </span>
-            <h3 className="font-bold text-slate-900 text-sm">React 18 + Vite SPA</h3>
-            <p className="text-slate-600 leading-relaxed">
-              Tailwind CSS responsive design, React Router dynamic routing, Recharts dashboard visualizations, and centralized Axios interceptors injecting JWT tokens.
-            </p>
-          </div>
-
-          <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3">
-            <span className="font-bold text-indigo-600 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-              <Server className="w-4 h-4" /> API Server Layer
-            </span>
-            <h3 className="font-bold text-slate-900 text-sm">Express.js on Node.js</h3>
-            <p className="text-slate-600 leading-relaxed">
-              Modular controllers, JWT authentication middleware, strict role-based access control (Student, Recruiter, Admin), Helmet security headers, and rate limiting.
-            </p>
-          </div>
-
-          <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3">
-            <span className="font-bold text-emerald-600 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-              <Database className="w-4 h-4" /> Database Layer
-            </span>
-            <h3 className="font-bold text-slate-900 text-sm">MongoDB Atlas</h3>
-            <p className="text-slate-600 leading-relaxed">
-              Mongoose ODM schemas with compound unique indexing to eliminate duplicate applications, pre-save bcrypt hashing, and text search indexes.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Security & Database Highlights */}
+      {/* For Candidates & For Employers */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
-          <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-            <Lock className="w-5 h-5" />
+        <div className="bg-white p-7 rounded-3xl border border-slate-200 shadow-2xs space-y-4">
+          <div className="flex items-center gap-2.5">
+            <Users className="w-5 h-5 text-brand-600" />
+            <h3 className="text-lg font-bold text-slate-900">For Students &amp; Job Seekers</h3>
           </div>
-          <h3 className="text-base font-bold text-slate-900">Security &amp; Authorization</h3>
           <ul className="space-y-2.5 text-xs text-slate-600">
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-              <span><strong>Argon/Bcrypt Hashing:</strong> Passwords hashed with 10 salt rounds before database persistence.</span>
+              <span>Browse verified tech jobs and paid internships without clutter.</span>
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-              <span><strong>Server-Side Role Guard:</strong> All privileged recruiter and admin endpoints verify permissions on the backend.</span>
+              <span>Bookmark roles to review later and apply with your saved profile and resume link.</span>
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-              <span><strong>Rate Limiting &amp; Helmet:</strong> Express rate limiter guards auth endpoints against brute force attempts.</span>
+              <span>Track every application status from submission to shortlisting and selection.</span>
             </li>
           </ul>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <Database className="w-5 h-5" />
+        <div className="bg-white p-7 rounded-3xl border border-slate-200 shadow-2xs space-y-4">
+          <div className="flex items-center gap-2.5">
+            <Briefcase className="w-5 h-5 text-brand-600" />
+            <h3 className="text-lg font-bold text-slate-900">For Recruiters &amp; Hiring Teams</h3>
           </div>
-          <h3 className="text-base font-bold text-slate-900">Database Optimization</h3>
           <ul className="space-y-2.5 text-xs text-slate-600">
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-              <span><strong>Duplicate Prevention:</strong> Compound unique index on <code>(job, student)</code> prevents duplicate applications.</span>
+              <span>Publish, edit, close, or reopen job and internship listings anytime.</span>
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-              <span><strong>Text Indexing:</strong> Mongoose text index across <code>title</code>, <code>description</code>, and <code>requiredSkills</code>.</span>
+              <span>Review candidate profiles, skills, cover notes, and resumes in one place.</span>
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-              <span><strong>Idempotent Seeder:</strong> Production-safe seed script generating 50 companies and 52 distinct job listings.</span>
+              <span>Shortlist, select, or reject applicants with clear hiring pipeline analytics.</span>
             </li>
           </ul>
         </div>
       </div>
 
-      {/* Deployment Details */}
-      <div className="bg-slate-900 rounded-3xl p-8 text-white space-y-4 shadow-xl">
-        <h3 className="text-base font-bold text-white flex items-center gap-2">
-          <Cloud className="w-5 h-5 text-brand-400" />
-          Cloud Deployment Architecture
-        </h3>
-        <p className="text-xs text-slate-300 leading-relaxed">
-          The application is structured for zero-configuration deployment on <strong>Render</strong>:
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 text-xs">
-          <div className="p-4 bg-slate-800 rounded-2xl border border-slate-700">
-            <p className="font-bold text-brand-400">Frontend (Render Static Site)</p>
-            <p className="text-slate-300 mt-1">Build command: <code>npm install && npm run build</code></p>
-            <p className="text-slate-300 mt-0.5">Publish directory: <code>dist</code></p>
-            <p className="text-slate-400 mt-1">SPA rewrites configured via <code>public/_redirects</code>.</p>
-          </div>
-          <div className="p-4 bg-slate-800 rounded-2xl border border-slate-700">
-            <p className="font-bold text-brand-400">Backend (Render Web Service)</p>
-            <p className="text-slate-300 mt-1">Build command: <code>npm install</code></p>
-            <p className="text-slate-300 mt-0.5">Start command: <code>npm start</code></p>
-            <p className="text-slate-400 mt-1">Binds dynamically to <code>process.env.PORT</code> with Atlas connection string.</p>
-          </div>
+      {/* CTA */}
+      <div className="bg-slate-900 rounded-3xl p-8 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        <div className="space-y-1.5">
+          <h3 className="text-xl font-bold">Start exploring opportunities today</h3>
+          <p className="text-xs text-slate-300">
+            Browse active listings or sign up to create your candidate or employer account.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3 flex-shrink-0">
+          <Link
+            to="/jobs"
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-xl transition-colors"
+          >
+            Browse Jobs <ArrowRight className="w-4 h-4" />
+          </Link>
+          <Link
+            to="/register"
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl border border-slate-700 transition-colors"
+          >
+            Create Account
+          </Link>
         </div>
       </div>
     </div>

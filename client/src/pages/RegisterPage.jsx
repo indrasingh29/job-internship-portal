@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Briefcase,
@@ -9,22 +9,35 @@ import {
   Building2,
   AlertCircle,
   UserCheck,
-  GraduationCap
+  GraduationCap,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 const RegisterPage = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [role, setRole] = useState('student');
+  const [role, setRole] = useState(() =>
+    searchParams.get('role') === 'recruiter' ? 'recruiter' : 'student'
+  );
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [companyName, setCompanyName] = useState('');
   const [industry, setIndustry] = useState('Information Technology');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const urlRole = searchParams.get('role');
+    if (urlRole === 'recruiter' || urlRole === 'student') {
+      setRole(urlRole);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,7 +60,7 @@ const RegisterPage = () => {
         navigate('/student/dashboard');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please check inputs.');
+      setError(err.response?.data?.message || 'Registration failed. Please check your details.');
     } finally {
       setLoading(false);
     }
@@ -55,20 +68,20 @@ const RegisterPage = () => {
 
   return (
     <div className="min-h-[85vh] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white mx-auto shadow-md">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-2 px-4">
+        <div className="w-12 h-12 rounded-2xl bg-brand-600 flex items-center justify-center text-white mx-auto shadow-sm">
           <Briefcase className="w-6 h-6" />
         </div>
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-          Create an Account
-        </h2>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          Create Your Account
+        </h1>
         <p className="text-xs text-slate-500">
-          Join as a student to apply, or as a recruiter to hire talent.
+          Join as a candidate to apply for roles, or as an employer to hire talent.
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4">
-        <div className="bg-white py-8 px-6 sm:px-10 rounded-3xl border border-slate-200 shadow-xl shadow-brand-500/5 space-y-6">
+        <div className="bg-white py-8 px-6 sm:px-9 rounded-3xl border border-slate-200 shadow-lg shadow-slate-900/5 space-y-6">
           {error && (
             <div className="p-3.5 rounded-xl text-xs font-semibold bg-red-50 text-red-700 border border-red-200 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
@@ -76,14 +89,14 @@ const RegisterPage = () => {
             </div>
           )}
 
-          {/* Role Selection Toggle */}
+          {/* Role Toggle */}
           <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl">
             <button
               type="button"
               onClick={() => setRole('student')}
               className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                 role === 'student'
-                  ? 'bg-white text-brand-600 shadow-sm'
+                  ? 'bg-white text-brand-700 shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -95,24 +108,25 @@ const RegisterPage = () => {
               onClick={() => setRole('recruiter')}
               className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                 role === 'recruiter'
-                  ? 'bg-white text-purple-600 shadow-sm'
+                  ? 'bg-white text-brand-700 shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Building2 className="w-4 h-4" />
-              Recruiter / Employer
+              Recruiter
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Full Name *</label>
+              <label htmlFor="reg-name" className="block font-bold text-slate-700 mb-1">Full Name *</label>
               <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
+                  id="reg-name"
                   type="text"
                   required
-                  placeholder="e.g. Indra Singh Jeena"
+                  placeholder="e.g. Aarav Sharma"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full text-xs text-slate-800 pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-500"
@@ -121,13 +135,14 @@ const RegisterPage = () => {
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Email Address *</label>
+              <label htmlFor="reg-email" className="block font-bold text-slate-700 mb-1">Email Address *</label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
+                  id="reg-email"
                   type="email"
                   required
-                  placeholder="name@example.com"
+                  placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full text-xs text-slate-800 pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-500"
@@ -136,48 +151,58 @@ const RegisterPage = () => {
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Password (min 6 characters) *</label>
+              <label htmlFor="reg-password" className="block font-bold text-slate-700 mb-1">Password (min 6 characters) *</label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
-                  type="password"
+                  id="reg-password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   minLength={6}
-                  placeholder="••••••••"
+                  placeholder="Create a strong password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full text-xs text-slate-800 pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-500"
+                  className="w-full text-xs text-slate-800 pl-10 pr-10 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-500"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-3.5 top-2.5 text-slate-400 hover:text-slate-600"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
-            {/* Recruiter specific inputs */}
             {role === 'recruiter' && (
-              <div className="p-3.5 rounded-2xl bg-purple-50/60 border border-purple-200 space-y-3">
-                <p className="font-bold text-purple-900 text-xs flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5" />
-                  Organization Details
+              <div className="p-4 rounded-2xl bg-brand-50/50 border border-brand-200 space-y-3">
+                <p className="font-bold text-brand-900 text-xs flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-brand-600" />
+                  Company Details
                 </p>
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Company / Startup Name *</label>
+                  <label htmlFor="reg-company" className="block font-semibold text-slate-700 mb-1">Company / Organization Name *</label>
                   <input
+                    id="reg-company"
                     type="text"
                     required
                     placeholder="e.g. Acme Tech Solutions"
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    className="w-full text-xs text-slate-800 px-3.5 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:border-purple-500"
+                    className="w-full text-xs text-slate-800 px-3.5 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:border-brand-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Industry Sector</label>
+                  <label htmlFor="reg-industry" className="block font-semibold text-slate-700 mb-1">Industry Sector</label>
                   <input
+                    id="reg-industry"
                     type="text"
                     placeholder="e.g. FinTech, Cloud, E-Commerce"
                     value={industry}
                     onChange={(e) => setIndustry(e.target.value)}
-                    className="w-full text-xs text-slate-800 px-3.5 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:border-purple-500"
+                    className="w-full text-xs text-slate-800 px-3.5 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:border-brand-500"
                   />
                 </div>
               </div>
@@ -186,17 +211,17 @@ const RegisterPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <UserCheck className="w-4 h-4" />
-              {loading ? 'Creating Account...' : `Register as ${role === 'student' ? 'Student' : 'Recruiter'}`}
+              {loading ? 'Creating Account...' : `Register as ${role === 'student' ? 'Candidate' : 'Recruiter'}`}
             </button>
           </form>
 
-          <div className="text-center text-xs text-slate-500 pt-2">
+          <div className="text-center text-xs text-slate-500 pt-1">
             Already have an account?{' '}
             <Link to="/login" className="font-bold text-brand-600 hover:text-brand-700">
-              Sign in here
+              Sign in
             </Link>
           </div>
         </div>

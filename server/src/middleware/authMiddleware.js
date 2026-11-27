@@ -1,7 +1,5 @@
-const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'btech_cse_minor_project_secret_key_2026_indra_singh_jeena';
+const { verifyToken } = require('../config/jwt');
 
 const protect = async (req, res, next) => {
   let token;
@@ -18,7 +16,7 @@ const protect = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = verifyToken(token);
     const user = await User.findById(decoded.id).select('-password');
 
     if (!user) {
@@ -31,7 +29,7 @@ const protect = async (req, res, next) => {
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
-        message: 'Your account has been deactivated. Please contact the administrator.'
+        message: 'Your account has been deactivated. Please contact support.'
       });
     }
 
@@ -40,8 +38,8 @@ const protect = async (req, res, next) => {
   } catch (error) {
     return res.status(401).json({
       success: false,
-      message: error.name === 'TokenExpiredError' 
-        ? 'Your session has expired. Please log in again.' 
+      message: error.name === 'TokenExpiredError'
+        ? 'Your session has expired. Please log in again.'
         : 'Invalid token. Authorization failed.'
     });
   }
