@@ -1,6 +1,6 @@
 const Company = require('../models/Company');
 const Job = require('../models/Job');
-const { escapeRegex } = require('../utils/helpers');
+const { escapeRegex, asString, sanitizeHttpUrl } = require('../utils/helpers');
 
 // @desc    Get all companies with search, industry filter, and pagination
 // @route   GET /api/companies
@@ -10,12 +10,15 @@ const getCompanies = async (req, res, next) => {
     const { search, industry, page = 1, limit = 12 } = req.query;
     const query = {};
 
-    if (search && search.trim() !== '') {
-      query.name = { $regex: escapeRegex(search.trim()), $options: 'i' };
+    const safeSearch = asString(search).trim();
+    const safeIndustry = asString(industry);
+
+    if (safeSearch !== '') {
+      query.name = { $regex: escapeRegex(safeSearch), $options: 'i' };
     }
 
-    if (industry && industry !== 'All') {
-      query.industry = industry;
+    if (safeIndustry && safeIndustry !== 'All') {
+      query.industry = safeIndustry;
     }
 
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
@@ -133,6 +136,15 @@ const getIndustries = async (req, res, next) => {
 const updateMyCompany = async (req, res, next) => {
   try {
     const { name, industry, description, website, headquarters, employeeCount, logoUrl } = req.body;
+
+    const cleanWebsite = sanitizeHttpUrl(website);
+    if (!cleanWebsite.valid) {
+      return res.status(400).json({ success: false, message: 'Website must be a valid http:// or https:// URL.' });
+    }
+    const cleanLogoUrl = sanitizeHttpUrl(logoUrl);
+    if (!cleanLogoUrl.valid) {
+      return res.status(400).json({ success: false, message: 'Logo URL must be a valid http:// or https:// URL.' });
+    }
 
     let company;
     if (req.user.company) {

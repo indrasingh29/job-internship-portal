@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import api from '../services/api';
 import OpportunityCard from '../components/OpportunityCard';
 import { CardSkeleton } from '../components/SkeletonLoader';
+import { safeExternalUrl } from '../utils/safeUrl';
 import {
   MapPin,
   Users,
@@ -95,9 +96,9 @@ const CompanyDetailPage = () => {
             </div>
           </div>
 
-          {company.website && (
+          {safeExternalUrl(company.website) && (
             <a
-              href={company.website}
+              href={safeExternalUrl(company.website)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-4 py-2.5 rounded-xl transition-colors"

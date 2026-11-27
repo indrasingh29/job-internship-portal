@@ -2,7 +2,7 @@ const User = require('../models/User');
 const Job = require('../models/Job');
 const Application = require('../models/Application');
 const SavedJob = require('../models/SavedJob');
-const { escapeRegex } = require('../utils/helpers');
+const { escapeRegex, asString } = require('../utils/helpers');
 
 // @desc    Get all users with search, role filter, and pagination
 // @route   GET /api/admin/users
@@ -12,19 +12,23 @@ const getAllUsers = async (req, res, next) => {
     const { search, role, status, page = 1, limit = 15 } = req.query;
     const query = {};
 
-    if (role && role !== 'All') {
-      query.role = role;
+    const safeRole = asString(role);
+    const safeStatus = asString(status);
+    const safeSearch = asString(search).trim();
+
+    if (safeRole && safeRole !== 'All') {
+      query.role = safeRole;
     }
 
-    if (status && status !== 'All') {
-      query.isActive = status === 'Active';
+    if (safeStatus && safeStatus !== 'All') {
+      query.isActive = safeStatus === 'Active';
     }
 
-    if (search && search.trim() !== '') {
-      const safeSearch = escapeRegex(search.trim());
+    if (safeSearch !== '') {
+      const escapedSearch = escapeRegex(safeSearch);
       query.$or = [
-        { name: { $regex: safeSearch, $options: 'i' } },
-        { email: { $regex: safeSearch, $options: 'i' } }
+        { name: { $regex: escapedSearch, $options: 'i' } },
+        { email: { $regex: escapedSearch, $options: 'i' } }
       ];
     }
 
@@ -145,16 +149,20 @@ const getAllJobsAdmin = async (req, res, next) => {
     const { search, status, opportunityType, page = 1, limit = 15 } = req.query;
     const query = {};
 
-    if (status && status !== 'All') {
-      query.status = status;
+    const safeStatus = asString(status);
+    const safeType = asString(opportunityType);
+    const safeSearch = asString(search).trim();
+
+    if (safeStatus && safeStatus !== 'All') {
+      query.status = safeStatus;
     }
 
-    if (opportunityType && opportunityType !== 'All') {
-      query.opportunityType = opportunityType;
+    if (safeType && safeType !== 'All') {
+      query.opportunityType = safeType;
     }
 
-    if (search && search.trim() !== '') {
-      query.title = { $regex: escapeRegex(search.trim()), $options: 'i' };
+    if (safeSearch !== '') {
+      query.title = { $regex: escapeRegex(safeSearch), $options: 'i' };
     }
 
     const pageNum = Math.max(1, parseInt(page, 10) || 1);

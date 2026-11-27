@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const mongoose = require('mongoose');
 
 const authRoutes = require('./routes/authRoutes');
 const companyRoutes = require('./routes/companyRoutes');
@@ -13,6 +14,39 @@ const adminRoutes = require('./routes/adminRoutes');
 
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const { apiLimiter } = require('./middleware/rateLimiter');
+
+const isCorsOriginAllowed = (
+  origin,
+  nodeEnv = process.env.NODE_ENV,
+  clientUrlEnv = process.env.CLIENT_URL
+) => {
+  // Non-browser requests (curl, server-to-server, health probes) send no Origin header
+  if (!origin) return true;
+
+  const normalizedOrigin = origin.replace(/\/$/, '');
+  const envOrigins = String(clientUrlEnv || '')
+    .split(',')
+    .map((u) => u.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+
+  if (nodeEnv !== 'production') {
+    const devOrigins = [
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      ...envOrigins
+    ];
+    return devOrigins.includes(normalizedOrigin);
+  }
+
+  // Production: strict whitelist only (no wildcard *.onrender.com or localhost)
+  const prodOrigins = envOrigins.length > 0
+    ? envOrigins
+    : ['https://job-portal-web-8a3p.onrender.com'];
+
+  return prodOrigins.includes(normalizedOrigin);
+};
 
 const app = express();
 
@@ -27,37 +61,12 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
 
-const mongoose = require('mongoose');
-
-// CORS setup: Supports local Vite dev server and deployed frontend origin
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:3000',
-  process.env.CLIENT_URL
-].filter(Boolean);
-
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    try {
-      const parsed = new URL(origin);
-      if (
-        allowedOrigins.includes(origin) ||
-        allowedOrigins.includes(origin.replace(/\/$/, '')) ||
-        parsed.hostname.endsWith('.onrender.com') ||
-        process.env.NODE_ENV !== 'production'
-      ) {
-        return callback(null, true);
-      }
-    } catch {
-      // If URL parsing fails, continue to check raw origin
+  origin: (origin, callback) => {
+    if (isCorsOriginAllowed(origin)) {
+      return callback(null, true);
     }
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-    } else {
-      callback(new Error('Blocked by CORS policy'));
-    }
+    return callback(new Error('Blocked by CORS policy'));
   },
   credentials: true
 }));
@@ -116,5 +125,7 @@ app.use('/api/admin', adminRoutes);
 // Error Handling Middlewares
 app.use(notFound);
 app.use(errorHandler);
+
+app.isCorsOriginAllowed = isCorsOriginAllowed;
 
 module.exports = app;

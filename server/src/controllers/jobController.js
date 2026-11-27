@@ -1,9 +1,11 @@
+const mongoose = require('mongoose');
 const Job = require('../models/Job');
 const Company = require('../models/Company');
 const Application = require('../models/Application');
 const SavedJob = require('../models/SavedJob');
 const {
   escapeRegex,
+  asString,
   normalizeDeadlineEndOfDay,
   normalizeStringArray
 } = require('../utils/helpers');
@@ -41,24 +43,35 @@ const getJobs = async (req, res, next) => {
       }
     ];
 
-    if (opportunityType && opportunityType !== 'All') {
-      andConditions.push({ opportunityType });
+    const safeOpportunityType = asString(opportunityType);
+    const safeCategory = asString(category);
+    const safeWorkplaceType = asString(workplaceType);
+    const safeJobType = asString(jobType);
+    const safeCompanyId = asString(companyId);
+    const safeLocation = asString(location).trim();
+    const safeSearch = asString(search).trim();
+
+    if (safeOpportunityType && safeOpportunityType !== 'All') {
+      andConditions.push({ opportunityType: safeOpportunityType });
     }
 
-    if (companyId) {
-      andConditions.push({ company: companyId });
+    if (safeCompanyId) {
+      if (!mongoose.Types.ObjectId.isValid(safeCompanyId)) {
+        return res.status(400).json({ success: false, message: 'Invalid company identifier.' });
+      }
+      andConditions.push({ company: safeCompanyId });
     }
 
-    if (category && category !== 'All') {
-      andConditions.push({ category });
+    if (safeCategory && safeCategory !== 'All') {
+      andConditions.push({ category: safeCategory });
     }
 
-    if (workplaceType && workplaceType !== 'All') {
-      andConditions.push({ workplaceType });
+    if (safeWorkplaceType && safeWorkplaceType !== 'All') {
+      andConditions.push({ workplaceType: safeWorkplaceType });
     }
 
-    if (jobType && jobType !== 'All') {
-      andConditions.push({ jobType });
+    if (safeJobType && safeJobType !== 'All') {
+      andConditions.push({ jobType: safeJobType });
     }
 
     if (isFresherEligible === 'true') {
@@ -73,24 +86,24 @@ const getJobs = async (req, res, next) => {
       andConditions.push({ stipendAmount: { $gte: Number(minStipend) } });
     }
 
-    if (location && location.trim() !== '') {
-      const safeLocation = escapeRegex(location.trim());
-      andConditions.push({ location: { $regex: safeLocation, $options: 'i' } });
+    if (safeLocation !== '') {
+      const escapedLocation = escapeRegex(safeLocation);
+      andConditions.push({ location: { $regex: escapedLocation, $options: 'i' } });
     }
 
-    if (search && search.trim() !== '') {
-      const safeTerm = escapeRegex(search.trim());
+    if (safeSearch !== '') {
+      const escapedTerm = escapeRegex(safeSearch);
       const matchingCompanies = await Company.find({
-        name: { $regex: safeTerm, $options: 'i' }
+        name: { $regex: escapedTerm, $options: 'i' }
       }).select('_id');
       const companyIds = matchingCompanies.map((c) => c._id);
 
       andConditions.push({
         $or: [
-          { title: { $regex: safeTerm, $options: 'i' } },
-          { requiredSkills: { $regex: safeTerm, $options: 'i' } },
-          { description: { $regex: safeTerm, $options: 'i' } },
-          { category: { $regex: safeTerm, $options: 'i' } },
+          { title: { $regex: escapedTerm, $options: 'i' } },
+          { requiredSkills: { $regex: escapedTerm, $options: 'i' } },
+          { description: { $regex: escapedTerm, $options: 'i' } },
+          { category: { $regex: escapedTerm, $options: 'i' } },
           ...(companyIds.length > 0 ? [{ company: { $in: companyIds } }] : [])
         ]
       });

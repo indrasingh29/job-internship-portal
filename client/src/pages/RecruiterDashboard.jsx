@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import AccountSettingsPanel from '../components/AccountSettingsPanel';
 import { OPPORTUNITY_CATEGORIES } from '../constants/categories';
 import { TableSkeleton } from '../components/SkeletonLoader';
+import { safeExternalUrl } from '../utils/safeUrl';
 import {
   BarChart,
   Bar,
@@ -1077,9 +1078,9 @@ const RecruiterDashboard = () => {
                         ))}
                       </div>
 
-                      {(app.resumeUrl || app.student?.profile?.resumeUrl) && (
+                      {safeExternalUrl(app.resumeUrl || app.student?.profile?.resumeUrl) && (
                         <a
-                          href={app.resumeUrl || app.student?.profile?.resumeUrl}
+                          href={safeExternalUrl(app.resumeUrl || app.student?.profile?.resumeUrl)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="font-bold text-brand-700 hover:text-brand-800 inline-flex items-center gap-1 bg-brand-50 px-3 py-1 rounded-lg"

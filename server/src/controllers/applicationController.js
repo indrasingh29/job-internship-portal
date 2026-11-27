@@ -1,5 +1,6 @@
 const Application = require('../models/Application');
 const Job = require('../models/Job');
+const { asString, sanitizeHttpUrl } = require('../utils/helpers');
 
 // @desc    Apply for a job / internship
 // @route   POST /api/applications/apply/:jobId
@@ -44,11 +45,19 @@ const applyJob = async (req, res, next) => {
       });
     }
 
+    const sanitizedResume = sanitizeHttpUrl(resumeUrl);
+    if (!sanitizedResume.valid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Resume URL must be a valid http:// or https:// link.'
+      });
+    }
+
     const application = await Application.create({
       job: jobId,
       student: req.user._id,
-      coverLetter: coverLetter || '',
-      resumeUrl: resumeUrl || req.user.profile?.resumeUrl || '',
+      coverLetter: asString(coverLetter).trim(),
+      resumeUrl: sanitizedResume.url || req.user.profile?.resumeUrl || '',
       status: 'Applied'
     });
 

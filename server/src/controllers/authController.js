@@ -3,7 +3,7 @@ const User = require('../models/User');
 const Company = require('../models/Company');
 const { signToken } = require('../config/jwt');
 const { sendPasswordResetEmail } = require('../utils/emailService');
-const { escapeRegex, normalizeStringArray } = require('../utils/helpers');
+const { escapeRegex, asString, sanitizeHttpUrl, normalizeStringArray } = require('../utils/helpers');
 
 const formatUserPayload = (user) => ({
   id: user._id,
@@ -22,10 +22,14 @@ const register = async (req, res, next) => {
   try {
     const { name, email, password, role, companyName, industry } = req.body;
 
-    if (!name || !name.trim() || !email || !password) {
+    if (
+      typeof name !== 'string' || !name.trim() ||
+      typeof email !== 'string' || !email.trim() ||
+      typeof password !== 'string' || !password
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide name, email, and password.'
+        message: 'Please provide valid name, email, and password.'
       });
     }
 
@@ -101,7 +105,7 @@ const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (typeof email !== 'string' || typeof password !== 'string' || !email.trim() || !password) {
       return res.status(400).json({
         success: false,
         message: 'Please provide both email and password.'
@@ -189,8 +193,28 @@ const updateProfile = async (req, res, next) => {
       portfolioUrl
     } = req.body;
 
-    if (name && name.trim()) {
+    if (typeof name === 'string' && name.trim()) {
       user.name = name.trim();
+    }
+
+    const urlChecks = [
+      { key: 'resumeUrl', label: 'Resume URL', val: resumeUrl },
+      { key: 'githubUrl', label: 'GitHub URL', val: githubUrl },
+      { key: 'linkedinUrl', label: 'LinkedIn URL', val: linkedinUrl },
+      { key: 'portfolioUrl', label: 'Portfolio URL', val: portfolioUrl }
+    ];
+    const sanitizedUrls = {};
+    for (const item of urlChecks) {
+      if (item.val !== undefined) {
+        const resUrl = sanitizeHttpUrl(item.val);
+        if (!resUrl.valid) {
+          return res.status(400).json({
+            success: false,
+            message: `${item.label} must be a valid http:// or https:// URL.`
+          });
+        }
+        sanitizedUrls[item.key] = resUrl.url;
+      }
     }
 
     const currentProfile = user.profile ? user.profile.toObject() : {};
@@ -198,28 +222,28 @@ const updateProfile = async (req, res, next) => {
     let sanitizedEducation = currentProfile.education || [];
     if (Array.isArray(education)) {
       sanitizedEducation = education
-        .filter((ed) => ed && (ed.degree?.trim() || ed.institution?.trim()))
+        .filter((ed) => ed && (asString(ed.degree).trim() || asString(ed.institution).trim()))
         .map((ed) => ({
-          degree: ed.degree?.trim() || '',
-          institution: ed.institution?.trim() || '',
-          yearOfCompletion: ed.yearOfCompletion?.trim() || '',
-          score: ed.score?.trim() || ''
+          degree: asString(ed.degree).trim(),
+          institution: asString(ed.institution).trim(),
+          yearOfCompletion: asString(ed.yearOfCompletion).trim(),
+          score: asString(ed.score).trim()
         }));
     }
 
     user.profile = {
       ...currentProfile,
-      headline: headline !== undefined ? String(headline).trim() : currentProfile.headline,
-      bio: bio !== undefined ? String(bio).trim() : currentProfile.bio,
-      phone: phone !== undefined ? String(phone).trim() : currentProfile.phone,
-      location: location !== undefined ? String(location).trim() : currentProfile.location,
+      headline: headline !== undefined ? asString(headline).trim() : currentProfile.headline,
+      bio: bio !== undefined ? asString(bio).trim() : currentProfile.bio,
+      phone: phone !== undefined ? asString(phone).trim() : currentProfile.phone,
+      location: location !== undefined ? asString(location).trim() : currentProfile.location,
       skills: skills !== undefined ? normalizeStringArray(skills, ',') : (currentProfile.skills || []),
       education: sanitizedEducation,
-      resumeUrl: resumeUrl !== undefined ? String(resumeUrl).trim() : currentProfile.resumeUrl,
-      experienceLevel: experienceLevel !== undefined ? String(experienceLevel).trim() : currentProfile.experienceLevel,
-      githubUrl: githubUrl !== undefined ? String(githubUrl).trim() : currentProfile.githubUrl,
-      linkedinUrl: linkedinUrl !== undefined ? String(linkedinUrl).trim() : currentProfile.linkedinUrl,
-      portfolioUrl: portfolioUrl !== undefined ? String(portfolioUrl).trim() : currentProfile.portfolioUrl
+      resumeUrl: sanitizedUrls.resumeUrl !== undefined ? sanitizedUrls.resumeUrl : currentProfile.resumeUrl,
+      experienceLevel: experienceLevel !== undefined ? asString(experienceLevel, 'Fresher').trim() : currentProfile.experienceLevel,
+      githubUrl: sanitizedUrls.githubUrl !== undefined ? sanitizedUrls.githubUrl : currentProfile.githubUrl,
+      linkedinUrl: sanitizedUrls.linkedinUrl !== undefined ? sanitizedUrls.linkedinUrl : currentProfile.linkedinUrl,
+      portfolioUrl: sanitizedUrls.portfolioUrl !== undefined ? sanitizedUrls.portfolioUrl : currentProfile.portfolioUrl
     };
 
     await user.save();
@@ -242,7 +266,7 @@ const changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword, confirmPassword } = req.body;
 
-    if (!currentPassword || !newPassword) {
+    if (typeof currentPassword !== 'string' || typeof newPassword !== 'string' || !currentPassword || !newPassword) {
       return res.status(400).json({
         success: false,
         message: 'Please provide both your current password and a new password.'
@@ -301,7 +325,7 @@ const changePassword = async (req, res, next) => {
 const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       return res.status(400).json({
         success: false,
         message: 'Please provide a valid email address.'

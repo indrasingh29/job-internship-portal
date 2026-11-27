@@ -96,12 +96,16 @@ const runAllTests = async () => {
     baseUrl = `http://127.0.0.1:${port}`;
     console.log(`Test server running on ephemeral port ${port}...\n`);
 
-    // 1. Health Check & Production DB Fallback Guard
+    // 1. Health Check, Production DB Guard & Strict Production CORS Whitelist
     const health = await makeRequest('GET', '/api/health');
     const prodGuardOk =
       isInMemoryFallbackAllowed({ NODE_ENV: 'production', ALLOW_IN_MEMORY_DB: 'true' }) === false &&
       isInMemoryFallbackAllowed({ NODE_ENV: 'production', ALLOW_IN_MEMORY_DB: 'false' }) === false;
-    recordResult('Backend Health Check (/api/health) & Prod DB Guard', health.status === 200 && health.data.status === 'online' && prodGuardOk);
+    const corsGuardOk =
+      app.isCorsOriginAllowed('https://job-portal-web-8a3p.onrender.com', 'production', 'https://job-portal-web-8a3p.onrender.com') === true &&
+      app.isCorsOriginAllowed('https://evil-app.onrender.com', 'production', 'https://job-portal-web-8a3p.onrender.com') === false &&
+      app.isCorsOriginAllowed('http://localhost:5173', 'production', 'https://job-portal-web-8a3p.onrender.com') === false;
+    recordResult('Health Check, Prod DB Guard & Strict Production CORS', health.status === 200 && health.data.status === 'online' && prodGuardOk && corsGuardOk);
 
     // 2. Public Statistics
     const publicStats = await makeRequest('GET', '/api/stats/public');
@@ -159,6 +163,16 @@ const runAllTests = async () => {
 
     const adminUsersAccess = await makeRequest('GET', '/api/admin/users', null, adminToken);
     recordResult('RBAC Authorization: Admin permitted to Admin routes', adminUsersAccess.status === 200 && Array.isArray(adminUsersAccess.data.users));
+
+    // 8b. NoSQL Operator Injection & Unsafe URL Sanitization Guards
+    const nosqlLoginRes = await makeRequest('POST', '/api/auth/login', {
+      email: { $gt: '' },
+      password: 'Password@123'
+    });
+    const xssUrlProfileRes = await makeRequest('PUT', '/api/auth/profile', {
+      resumeUrl: 'javascript:alert(1)'
+    }, studentToken);
+    recordResult('Input Hardening: Blocks NoSQL Operator Injection & javascript: URLs', nosqlLoginRes.status === 400 && xssUrlProfileRes.status === 400);
 
     // 9. Change Password + Forgot Password + Reset Password workflow on newly registered user
     const candidateToken = regStudentRes.data.token;
