@@ -105,13 +105,10 @@ const runAllTests = async () => {
       app.isCorsOriginAllowed('https://job-portal-web-8a3p.onrender.com', 'production', 'https://job-portal-web-8a3p.onrender.com') === true &&
       app.isCorsOriginAllowed('https://evil-app.onrender.com', 'production', 'https://job-portal-web-8a3p.onrender.com') === false &&
       app.isCorsOriginAllowed('http://localhost:5173', 'production', 'https://job-portal-web-8a3p.onrender.com') === false;
-    const { requireDatabase } = require('../middleware/dbReadyMiddleware');
+    const { createDatabaseGuard } = require('../middleware/dbReadyMiddleware');
     let db503Status = null;
     const fakeRes = { status: (code) => ({ json: () => { db503Status = code; } }) };
-    const origReadyState = require('mongoose').connection.readyState;
-    Object.defineProperty(require('mongoose').connection, 'readyState', { value: 0, configurable: true });
-    requireDatabase({}, fakeRes, () => {});
-    Object.defineProperty(require('mongoose').connection, 'readyState', { value: origReadyState, configurable: true });
+    createDatabaseGuard(() => 0)({}, fakeRes, () => {});
     recordResult('Health Check, Prod DB Guard, 503 Fast-Fail & Strict CORS', health.status === 200 && health.data.status === 'online' && prodGuardOk && corsGuardOk && db503Status === 503);
 
     // 2. Public Statistics
