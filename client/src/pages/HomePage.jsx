@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -14,7 +14,9 @@ import {
   ShieldCheck,
   Sparkles,
   Building2,
-  UserCheck
+  UserCheck,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import api from '../services/api';
 import OpportunityCard from '../components/OpportunityCard';
@@ -35,30 +37,37 @@ const HomePage = () => {
     totalApplications: 0
   });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const loadHomeData = async () => {
-      try {
-        const [jobsRes, internshipsRes, compsRes, statsRes] = await Promise.all([
-          api.get('/jobs?opportunityType=Job&limit=6'),
-          api.get('/jobs?opportunityType=Internship&limit=3'),
-          api.get('/companies?limit=12'),
-          api.get('/stats/public')
-        ]);
+  const loadHomeData = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const [jobsRes, internshipsRes, compsRes, statsRes] = await Promise.all([
+        api.get('/jobs?opportunityType=Job&limit=6'),
+        api.get('/jobs?opportunityType=Internship&limit=3'),
+        api.get('/companies?limit=12'),
+        api.get('/stats/public')
+      ]);
 
-        if (jobsRes.data.success) setLatestJobs(jobsRes.data.jobs || []);
-        if (internshipsRes.data.success) setLatestInternships(internshipsRes.data.jobs || []);
-        if (compsRes.data.success) setFeaturedCompanies(compsRes.data.companies || []);
-        if (statsRes.data.success) setStats(statsRes.data.stats);
-      } catch (err) {
-        console.error('Home data load error:', err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadHomeData();
+      if (jobsRes.data.success) setLatestJobs(jobsRes.data.jobs || []);
+      if (internshipsRes.data.success) setLatestInternships(internshipsRes.data.jobs || []);
+      if (compsRes.data.success) setFeaturedCompanies(compsRes.data.companies || []);
+      if (statsRes.data.success) setStats(statsRes.data.stats);
+    } catch (err) {
+      setLoadError(
+        err.response?.data?.message ||
+          'Unable to reach the opportunities service right now. Please try again shortly.'
+      );
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadHomeData();
+  }, [loadHomeData]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -244,6 +253,18 @@ const HomePage = () => {
             <CardSkeleton />
             <CardSkeleton />
           </div>
+        ) : loadError ? (
+          <div className="bg-white rounded-2xl border border-amber-200 p-8 text-center space-y-3">
+            <AlertCircle className="w-8 h-8 text-amber-600 mx-auto" />
+            <p className="text-sm font-semibold text-slate-800">{loadError}</p>
+            <button
+              type="button"
+              onClick={loadHomeData}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-xl transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Retry
+            </button>
+          </div>
         ) : latestJobs.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-sm text-slate-500">
             No active job postings available right now.
@@ -274,6 +295,18 @@ const HomePage = () => {
             <CardSkeleton />
             <CardSkeleton />
             <CardSkeleton />
+          </div>
+        ) : loadError ? (
+          <div className="bg-white rounded-2xl border border-amber-200 p-8 text-center space-y-3">
+            <AlertCircle className="w-8 h-8 text-amber-600 mx-auto" />
+            <p className="text-sm font-semibold text-slate-800">{loadError}</p>
+            <button
+              type="button"
+              onClick={loadHomeData}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-xl transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Retry
+            </button>
           </div>
         ) : latestInternships.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-sm text-slate-500">
@@ -307,23 +340,44 @@ const HomePage = () => {
             </Link>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {featuredCompanies.map((comp) => (
-              <Link
-                key={comp._id}
-                to={`/company/${comp.slug || comp._id}`}
-                className="bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/80 hover:border-brand-300 hover:bg-white hover:shadow-sm transition-all text-center flex flex-col items-center justify-center group"
+          {loading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-28 bg-slate-100 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : loadError ? (
+            <div className="bg-slate-50 rounded-2xl border border-amber-200 p-6 text-center space-y-2.5">
+              <p className="text-xs font-semibold text-slate-700">{loadError}</p>
+              <button
+                type="button"
+                onClick={loadHomeData}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-xl transition-colors"
               >
-                <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 group-hover:bg-brand-50 group-hover:border-brand-200 text-slate-800 group-hover:text-brand-700 font-bold flex items-center justify-center text-sm transition-colors mb-2">
-                  {comp.name.charAt(0).toUpperCase()}
-                </div>
-                <h3 className="text-xs font-bold text-slate-800 line-clamp-1 group-hover:text-brand-600 transition-colors">
-                  {comp.name}
-                </h3>
-                <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{comp.industry}</p>
-              </Link>
-            ))}
-          </div>
+                <RefreshCw className="w-3.5 h-3.5" /> Retry
+              </button>
+            </div>
+          ) : featuredCompanies.length === 0 ? (
+            <p className="text-xs text-slate-500 text-center py-6">No company profiles available right now.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {featuredCompanies.map((comp) => (
+                <Link
+                  key={comp._id}
+                  to={`/company/${comp.slug || comp._id}`}
+                  className="bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/80 hover:border-brand-300 hover:bg-white hover:shadow-sm transition-all text-center flex flex-col items-center justify-center group"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 group-hover:bg-brand-50 group-hover:border-brand-200 text-slate-800 group-hover:text-brand-700 font-bold flex items-center justify-center text-sm transition-colors mb-2">
+                    {comp.name.charAt(0).toUpperCase()}
+                  </div>
+                  <h3 className="text-xs font-bold text-slate-800 line-clamp-1 group-hover:text-brand-600 transition-colors">
+                    {comp.name}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{comp.industry}</p>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

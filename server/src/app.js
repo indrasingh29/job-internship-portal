@@ -14,6 +14,7 @@ const adminRoutes = require('./routes/adminRoutes');
 
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const { apiLimiter } = require('./middleware/rateLimiter');
+const { requireDatabase } = require('./middleware/dbReadyMiddleware');
 
 const isCorsOriginAllowed = (
   origin,
@@ -113,14 +114,14 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/companies', companyRoutes);
-app.use('/api/jobs', jobRoutes);
-app.use('/api/applications', applicationRoutes);
-app.use('/api/saved-jobs', savedJobRoutes);
-app.use('/api/stats', statsRoutes);
-app.use('/api/admin', adminRoutes);
+// API Routes (require connected database)
+app.use('/api/auth', requireDatabase, authRoutes);
+app.use('/api/companies', requireDatabase, companyRoutes);
+app.use('/api/jobs', requireDatabase, jobRoutes);
+app.use('/api/applications', requireDatabase, applicationRoutes);
+app.use('/api/saved-jobs', requireDatabase, savedJobRoutes);
+app.use('/api/stats', requireDatabase, statsRoutes);
+app.use('/api/admin', requireDatabase, adminRoutes);
 
 // Error Handling Middlewares
 app.use(notFound);

@@ -96,7 +96,7 @@ const runAllTests = async () => {
     baseUrl = `http://127.0.0.1:${port}`;
     console.log(`Test server running on ephemeral port ${port}...\n`);
 
-    // 1. Health Check, Production DB Guard & Strict Production CORS Whitelist
+    // 1. Health Check, Production DB Guard, 503 Disconnected Guard & Strict Production CORS Whitelist
     const health = await makeRequest('GET', '/api/health');
     const prodGuardOk =
       isInMemoryFallbackAllowed({ NODE_ENV: 'production', ALLOW_IN_MEMORY_DB: 'true' }) === false &&
@@ -105,7 +105,14 @@ const runAllTests = async () => {
       app.isCorsOriginAllowed('https://job-portal-web-8a3p.onrender.com', 'production', 'https://job-portal-web-8a3p.onrender.com') === true &&
       app.isCorsOriginAllowed('https://evil-app.onrender.com', 'production', 'https://job-portal-web-8a3p.onrender.com') === false &&
       app.isCorsOriginAllowed('http://localhost:5173', 'production', 'https://job-portal-web-8a3p.onrender.com') === false;
-    recordResult('Health Check, Prod DB Guard & Strict Production CORS', health.status === 200 && health.data.status === 'online' && prodGuardOk && corsGuardOk);
+    const { requireDatabase } = require('../middleware/dbReadyMiddleware');
+    let db503Status = null;
+    const fakeRes = { status: (code) => ({ json: () => { db503Status = code; } }) };
+    const origReadyState = require('mongoose').connection.readyState;
+    Object.defineProperty(require('mongoose').connection, 'readyState', { value: 0, configurable: true });
+    requireDatabase({}, fakeRes, () => {});
+    Object.defineProperty(require('mongoose').connection, 'readyState', { value: origReadyState, configurable: true });
+    recordResult('Health Check, Prod DB Guard, 503 Fast-Fail & Strict CORS', health.status === 200 && health.data.status === 'online' && prodGuardOk && corsGuardOk && db503Status === 503);
 
     // 2. Public Statistics
     const publicStats = await makeRequest('GET', '/api/stats/public');

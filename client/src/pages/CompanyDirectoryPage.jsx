@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import CompanyCard from '../components/CompanyCard';
 import { CardSkeleton } from '../components/SkeletonLoader';
@@ -38,32 +38,32 @@ const CompanyDirectoryPage = () => {
     fetchIndustries();
   }, []);
 
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const params = new URLSearchParams();
-        if (debouncedSearch.trim()) params.append('search', debouncedSearch.trim());
-        if (industry && industry !== 'All') params.append('industry', industry);
-        params.append('page', String(page));
-        params.append('limit', '12');
+  const fetchCompanies = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (debouncedSearch.trim()) params.append('search', debouncedSearch.trim());
+      if (industry && industry !== 'All') params.append('industry', industry);
+      params.append('page', String(page));
+      params.append('limit', '12');
 
-        const res = await api.get(`/companies?${params.toString()}`);
-        if (res.data.success) {
-          setCompanies(res.data.companies || []);
-          setTotal(res.data.total || 0);
-          setTotalPages(res.data.pages || 1);
-        }
-      } catch (err) {
-        setError(err.response?.data?.message || 'Unable to load companies.');
-      } finally {
-        setLoading(false);
+      const res = await api.get(`/companies?${params.toString()}`);
+      if (res.data.success) {
+        setCompanies(res.data.companies || []);
+        setTotal(res.data.total || 0);
+        setTotalPages(res.data.pages || 1);
       }
-    };
-
-    fetchCompanies();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to load companies.');
+    } finally {
+      setLoading(false);
+    }
   }, [debouncedSearch, industry, page]);
+
+  useEffect(() => {
+    fetchCompanies();
+  }, [fetchCompanies]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -128,9 +128,16 @@ const CompanyDirectoryPage = () => {
 
       {/* Grid */}
       {error ? (
-        <div className="bg-white rounded-2xl border border-red-200 p-10 text-center space-y-3">
-          <AlertCircle className="w-10 h-10 text-red-500 mx-auto" />
+        <div className="bg-white rounded-2xl border border-amber-200 p-10 text-center space-y-3">
+          <AlertCircle className="w-10 h-10 text-amber-600 mx-auto" />
           <p className="text-sm font-semibold text-slate-800">{error}</p>
+          <button
+            type="button"
+            onClick={fetchCompanies}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-xl transition-colors"
+          >
+            <RotateCcw className="w-3.5 h-3.5" /> Retry
+          </button>
         </div>
       ) : loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

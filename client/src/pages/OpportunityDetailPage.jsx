@@ -45,8 +45,10 @@ const OpportunityDetailPage = () => {
           setJob(res.data.job);
         }
       } catch (err) {
-        console.error('Failed to load opportunity:', err.message);
-        setError('Opportunity not found or no longer available.');
+        setError(
+          err.response?.data?.message ||
+            'Opportunity not found or temporarily unavailable.'
+        );
       } finally {
         setLoading(false);
       }

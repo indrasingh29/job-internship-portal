@@ -39,6 +39,10 @@ const errorHandler = (err, req, res, next) => {
     message = 'Authorization token has expired.';
   }
 
+  if (statusCode >= 500 && process.env.NODE_ENV === 'production') {
+    message = 'An unexpected server error occurred. Please try again later.';
+  }
+
   res.status(statusCode).json({
     success: false,
     message,
